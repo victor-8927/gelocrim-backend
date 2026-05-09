@@ -76,10 +76,15 @@ def gerar_numero_viagem(db, data_str):
 # ── Endpoints ─────────────────────────────────────────────────
 @router.get("")
 def list_routes(date: Optional[str] = None, status: Optional[str] = None,
-                db: Session = Depends(get_db)):
+                db: Session = Depends(get_db),
+                current_user=Depends(get_current_user)):
     where, params = [], {}
     if date:   where.append("r.route_date = :date");   params["date"] = date
     if status: where.append("r.status = :status");     params["status"] = status
+    if current_user.get("role") == "driver":
+        cpf = current_user.get("id")
+        where.append("REPLACE(REPLACE(REPLACE(d.cpf,'.',''),'-',''),'/','') = :cpf")
+        params["cpf"] = cpf
     w = ("WHERE " + " AND ".join(where)) if where else ""
     rows = db.execute(text(f"""
         SELECT r.id as route_id, r.trip_number, r.route_date as date,
