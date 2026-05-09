@@ -33,7 +33,7 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-app.mount("/fotos", StaticFiles(directory=r"C:\fleet-cloud\fotos"), name="fotos")
+app.mount("/fotos", StaticFiles(directory="fotos"), name="fotos")
 app.include_router(auth_router)
 app.include_router(vehicles_router)
 app.include_router(drivers_router)
