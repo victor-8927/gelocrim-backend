@@ -5779,12 +5779,18 @@ async function loadTorreControle(){
           stops.forEach(function(s){
             var lat=parseFloat(s.lat),lng=parseFloat(s.lng); if(!lat||!lng) return;
             var sc=s.status==='completed'?'#00FF88':s.status==='failed'?'#FF3355':s.status==='reentrega'?'#FFD700':cr;
-            var emoji=getEmoji(s.segmento);
             var mk=new google.maps.Marker({
               position:{lat:lat,lng:lng},
               map:window._monMap,
-              label:{text:emoji,fontSize:'14px',fontFamily:'serif'},
-              icon:{path:google.maps.SymbolPath.CIRCLE,scale:16,fillColor:sc,fillOpacity:1,strokeColor:'#001020',strokeWeight:2},
+              icon:{
+                path:'M12 0C5.4 0 0 5.4 0 12c0 7.2 12 20 12 20s12-12.8 12-20C24 5.4 18.6 0 12 0z',
+                fillColor:sc,
+                fillOpacity:1,
+                strokeColor:'#fff',
+                strokeWeight:2,
+                scale:1.5,
+                anchor:new google.maps.Point(12,32)
+              },
               title:s.recipient_name
             });
             var iw=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(s.recipient_name||'')+'</b><br>'+emoji+' '+(s.segmento||'')+'<br>'+s.status+'</div>'});
