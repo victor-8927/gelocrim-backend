@@ -5800,6 +5800,24 @@ async function loadTorreControle(){
         }catch(e){}
       }
     }
+      try{
+        var gpsData=await api('GET','/routes/gps/todos');
+        if(!window._monTruckMarkers) window._monTruckMarkers=[];
+        window._monTruckMarkers.forEach(function(m){m.setMap(null);}); window._monTruckMarkers=[];
+        gpsData.forEach(function(g){
+          var truckMk=new google.maps.Marker({
+            position:{lat:g.lat,lng:g.lng},
+            map:window._monMap,
+            icon:{path:google.maps.SymbolPath.CIRCLE,scale:16,fillColor:'#FF6600',fillOpacity:1,strokeColor:'#fff',strokeWeight:3},
+            label:{text:'CAM',fontSize:'9px',color:'#fff',fontWeight:'bold'},
+            title:(g.driver_name||'')+' - '+(g.trip_number||''),
+            zIndex:999
+          });
+          var iwt=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(g.driver_name||'')+'</b><br>'+(g.trip_number||'')+'</div>'});
+          truckMk.addListener('click',function(){iwt.open(window._monMap,truckMk);});
+          window._monTruckMarkers.push(truckMk);
+        });
+      }catch(e2){}
   }catch(e){toast('Erro Torre: '+e.message,'error');}
 }
 
