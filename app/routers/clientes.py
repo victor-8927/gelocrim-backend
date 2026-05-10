@@ -29,7 +29,16 @@ class ClienteIn(BaseModel):
 
 @router.get("")
 def list_clientes(db: Session = Depends(get_db)):
-    result = db.execute(text("SELECT * FROM clientes"))
+    result = db.execute(text("""
+        SELECT codparc, name AS nome, name AS nome_fantasia,
+               razao_social, cpf_cnpj, phone AS telefone,
+               address AS endereco, bairro, cidade, cep,
+               lat, lng, segmento, rota, zona_geo,
+               tempo_entrega, comodatos,
+               CASE WHEN status='active' THEN 'S' ELSE 'N' END AS ativo,
+               id, created_at
+        FROM clientes ORDER BY name
+    """))
     rows = result.mappings().all()
     return [dict(r) for r in rows]
 
