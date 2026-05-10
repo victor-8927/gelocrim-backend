@@ -42,7 +42,7 @@ class OrderOut(BaseModel):
     volume_m3: float = 0
     tw_start: Optional[str] = None
     tw_end: Optional[str] = None
-    status: str = "pending"
+    status: str = 'pending'
     created_at: Optional[str] = None
     delivery_date: Optional[str] = None
     order_type: Optional[str] = None
@@ -235,7 +235,7 @@ def create_order(order: dict = Body(...), db: Session = Depends(get_db)):
             "tws":     order.get("time_window_start", "07:30"),
             "twe":     order.get("time_window_end", "18:00"),
             "notes":   order.get("order_type") or order.get("notes"),
-            "status":  order.get("status", "pending"),
+            "status":  order.get("status", 'pending'),
             "priority":order.get("priority", 1),
             "ddate":   order.get("delivery_date"),
             "ts":      ts,
@@ -256,7 +256,7 @@ def create_order(order: dict = Body(...), db: Session = Depends(get_db)):
 def delete_pending_orders(db: Session = Depends(get_db)):
     result = db.execute(text("DELETE FROM orders WHERE status='pending'"))
     db.commit()
-    return {"deleted": result.rowcount}
+    return {'deleted': result.rowcount}
 
 @router.post("/batch", status_code=201)
 def create_batch(body: BatchIn, _=Depends(get_current_user), db: Session = Depends(get_db)):
@@ -293,7 +293,7 @@ def update_order(oid: str, body: dict, _=Depends(get_current_user), db: Session 
 def delete_order(oid: str, _=Depends(get_current_user), db: Session = Depends(get_db)):
     row = db.execute(text("SELECT status FROM orders WHERE id=:id"), {"id": oid}).fetchone()
     if not row: raise HTTPException(status_code=404, detail="Pedido nao encontrado.")
-    if row.status == "routed": raise HTTPException(status_code=409, detail="Pedido ja roteirizado.")
+    if row.status == 'routed': raise HTTPException(status_code=409, detail="Pedido ja roteirizado.")
     db.execute(text("DELETE FROM orders WHERE id=:id"), {"id": oid})
     db.commit()
 

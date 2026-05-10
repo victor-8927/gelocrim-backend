@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/v1/drivers", tags=["Motoristas"])
 
 class DriverIn(BaseModel):
     name:           str
-    tipo:           Optional[str]   = "motorista"
+    tipo:           Optional[str]   = 'motorista'
     cpf:            Optional[str]   = None
     cnh:            Optional[str]   = None
     cnh_category:   Optional[str]   = None
@@ -31,7 +31,7 @@ class DriverIn(BaseModel):
 class DriverOut(BaseModel):
     id:             str
     name:           str
-    tipo:           Optional[str]   = "motorista"
+    tipo:           Optional[str]   = 'motorista'
     cpf:            Optional[str]   = None
     cnh:            Optional[str]   = None
     cnh_category:   Optional[str]   = None

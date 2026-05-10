@@ -17,7 +17,7 @@ class VehicleIn(BaseModel):
     type:          str             = "caminhao_truck"
     capacity_kg:   float           = 1000
     capacity_m3:   float           = 8
-    status:        str             = "active"
+    status:        str             = 'active'
     fuel_type:     Optional[str]   = "diesel"
     km_per_liter:  Optional[float] = 4.0
     fuel_price:    Optional[float] = 6.50

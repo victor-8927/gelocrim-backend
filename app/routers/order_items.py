@@ -76,4 +76,4 @@ def bulk_order_items(body: OrderItemBulk, db: Session = Depends(get_db)):
 def delete_order_items(item_tipo: str, db: Session = Depends(get_db)):
     db.execute(text("DELETE FROM order_items WHERE item_tipo = :tipo"), {"tipo": item_tipo})
     db.commit()
-    return {"deleted": True}
+    return {'deleted': True}

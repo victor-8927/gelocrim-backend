@@ -48,10 +48,10 @@ def dashboard(_=Depends(get_current_user), db: Session = Depends(get_db)):
     return {
         "date": today,
         "orders": {
-            "pending": int(t["orders_pending"]),
-            "routed": int(t["orders_routed"]),
-            "delivered": int(t["orders_delivered"]),
-            "failed": int(t["orders_failed"]),
+            'pending': int(t["orders_pending"]),
+            'routed': int(t["orders_routed"]),
+            'delivered': int(t["orders_delivered"]),
+            'failed': int(t["orders_failed"]),
         },
         "routes_today": {
             "count": int(r["count"]),
@@ -111,8 +111,8 @@ def summary(
         "total_distance_km": round(float(agg["total_distance_km"]), 1),
         "avg_distance_km": round(float(agg["avg_distance_km"]), 1),
         "avg_stops_per_route": round(float(agg["avg_stops_per_route"]), 1),
-        "total_orders_routed": int(orders["routed"]),
-        "total_orders_pending": int(orders["pending"]),
+        "total_orders_routed": int(orders['routed']),
+        "total_orders_pending": int(orders['pending']),
     }
 
 

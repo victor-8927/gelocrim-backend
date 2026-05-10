@@ -94,7 +94,7 @@ def list_routes(date: Optional[str] = None, status: Optional[str] = None,
                d.name as driver_name, d.phone as driver_phone,
                (SELECT COUNT(*) FROM route_stops s WHERE s.route_id = r.id) as total_stops,
                (SELECT COUNT(*) FROM route_stops s WHERE s.route_id = r.id
-                AND s.status = "completed") as delivered_stops
+                AND s.status = 'completed') as delivered_stops
         FROM routes r
         LEFT JOIN vehicles v ON v.id = r.vehicle_id
         LEFT JOIN drivers d ON d.id = r.driver_id
@@ -110,7 +110,7 @@ def create_route(body: RouteCreate, db: Session = Depends(get_db)):
     db.execute(text("""
         INSERT INTO routes (id, trip_number, vehicle_id, driver_id,
             route_date, planned_start, status)
-        VALUES (:id, :trip, :vid, :did, :date, :ps, "optimized")
+        VALUES (:id, :trip, :vid, :did, :date, :ps, 'optimized')
     """), {"id":route_id,"trip":trip_number,"vid":body.vehicle_id,
            "did":body.driver_id,"date":body.date,"ps":body.planned_start})
 
@@ -167,7 +167,7 @@ def create_route(body: RouteCreate, db: Session = Depends(get_db)):
             INSERT INTO route_stops
                 (stop_id,route_id,order_id,sequence,recipient_name,address,
                  lat,lng,weight_kg,status,codparc)
-            VALUES (:sid,:rid,:oid,:seq,:name,:addr,:lat,:lng,:kg,"pending",:cp)
+            VALUES (:sid,:rid,:oid,:seq,:name,:addr,:lat,:lng,:kg,'pending',:cp)
         """), {"sid":stop_id,"rid":route_id,"oid":cli["order_ids"][0],"seq":i,
                "name":cli["recipient_name"],"addr":cli["address"],
                "lat":cli["lat"],"lng":cli["lng"],"kg":cli["weight_kg"],"cp":cli["codparc"]})
@@ -175,7 +175,7 @@ def create_route(body: RouteCreate, db: Session = Depends(get_db)):
             db.execute(text("UPDATE orders SET status='routed' WHERE id=:id"),{"id":oid})
 
     db.commit()
-    return {"route_id":route_id,"trip_number":trip_number,"status":"optimized","total_stops":len(clientes_validos)}
+    return {"route_id":route_id,"trip_number":trip_number,"status":'optimized',"total_stops":len(clientes_validos)}
 
 @router.get("/{route_id}/stops")
 def get_stops(route_id: str, db: Session = Depends(get_db)):
@@ -204,7 +204,7 @@ def get_notas_stop(route_id: str, stop_id: str, db: Session = Depends(get_db)):
         FROM orders o
         LEFT JOIN order_items oi ON oi.codparc = o.codparc
         WHERE o.codparc = :cp
-        AND o.status IN ("routed","pending","delivered")
+        AND o.status IN ('routed','pending','delivered')
         ORDER BY o.external_id, oi.item_tipo
     """), {"cp":stop["codparc"]}).mappings().all()
 
@@ -224,7 +224,7 @@ def get_notas_stop(route_id: str, stop_id: str, db: Session = Depends(get_db)):
 def liberar_rota(route_id: str, db: Session = Depends(get_db)):
     db.execute(text("UPDATE routes SET status='released' WHERE id=:id"),{"id":route_id})
     db.commit()
-    return {"status":"released"}
+    return {"status":'released'}
 
 class IniciarBody(BaseModel):
     km_inicial: Optional[int] = None
@@ -235,7 +235,7 @@ def iniciar_rota(route_id: str, body: IniciarBody = IniciarBody(), db: Session =
         "UPDATE routes SET status='executing', started_at=:now, km_inicial=:km WHERE id=:id"
     ),{"id":route_id,"now":datetime.now().isoformat(),"km":body.km_inicial})
     db.commit()
-    return {"status":"executing"}
+    return {"status":'executing'}
 
 class FinalizarBody(BaseModel):
     km_final: Optional[int] = None
@@ -246,20 +246,20 @@ def finalizar_rota(route_id: str, body: FinalizarBody = FinalizarBody(), db: Ses
         "UPDATE routes SET status='done', finished_at=:now, km_final=:km WHERE id=:id"
     ),{"id":route_id,"now":datetime.now().isoformat(),"km":body.km_final})
     db.commit()
-    return {"status":"done"}
+    return {"status":'done'}
 
 @router.delete("/{route_id}")
 def delete_route(route_id: str, db: Session = Depends(get_db)):
     route = db.execute(text("SELECT status FROM routes WHERE id=:id"),{"id":route_id}).fetchone()
     if not route: raise HTTPException(404,"Rota não encontrada")
-    if route[0] in ("executing","done"): raise HTTPException(400,"Não pode excluir rota ativa")
+    if route[0] in ('executing','done'): raise HTTPException(400,"Não pode excluir rota ativa")
     stops = db.execute(text("SELECT order_id FROM route_stops WHERE route_id=:id"),{"id":route_id}).fetchall()
     for s in stops:
         if s[0]: db.execute(text("UPDATE orders SET status='pending' WHERE id=:id"),{"id":s[0]})
     db.execute(text("DELETE FROM route_stops WHERE route_id=:id"),{"id":route_id})
     db.execute(text("DELETE FROM routes WHERE id=:id"),{"id":route_id})
     db.commit()
-    return {"deleted":True}
+    return {'deleted':True}
 
 @router.patch("/{route_id}/stops/{stop_id}")
 async def update_stop(route_id: str, stop_id: str, body: StopUpdate,
@@ -288,10 +288,10 @@ async def update_stop(route_id: str, stop_id: str, body: StopUpdate,
     if not fields: raise HTTPException(400,"Nenhum campo")
     db.execute(text(f"UPDATE route_stops SET {', '.join(fields)} WHERE stop_id=:stop_id AND route_id=:route_id"), params)
 
-    if body.status in ("completed","failed"):
+    if body.status in ('completed','failed'):
         stop = db.execute(text("SELECT order_id FROM route_stops WHERE stop_id=:id"),{"id":stop_id}).fetchone()
         if stop and stop[0]:
-            novo = "delivered" if body.status=="completed" else "failed"
+            novo = 'delivered' if body.status=='completed' else 'failed'
             db.execute(text("UPDATE orders SET status=:s WHERE id=:id"),{"s":novo,"id":stop[0]})
 
     db.commit()
@@ -398,6 +398,6 @@ def get_gps_todos(db: Session = Depends(get_db)):
             SELECT MAX(g2.ts) FROM route_gps g2
             WHERE g2.route_id = g.route_id
         )
-        AND r.status = "executing"
+        AND r.status = 'executing'
     """)).mappings().all()
     return [dict(r) for r in rows]
