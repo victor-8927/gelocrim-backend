@@ -20,7 +20,9 @@ from app.routers.proxy import router_proxy
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.database import init_schema
+    from app.startup import garantir_colunas
     init_schema()
+    garantir_colunas()
     yield
 
 app = FastAPI(title="Gelocrim Fleet API", version="1.0.0", lifespan=lifespan)
