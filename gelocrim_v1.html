@@ -5734,6 +5734,33 @@ async function loadTorreControle(){
       var mkDep=new google.maps.Marker({position:{lat:-3.093544,lng:-60.075812},map:window._monMap,
         icon:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#e8521a',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},title:'Depósito'});
       window._monMarkers.push(mkDep);
+      var segEmoji={
+        'POSTO DE GASOLINA':'?','DISTRIBUIDORA':'??','SUPERMERCADO':'??',
+        'MERCADO':'??','QUITANDA':'??','LOJA':'??','FEIRAS':'??',
+        'EVENTOS':'??','RESTAURANTE':'??','BAR':'??','BOTECO':'??',
+        'CASA NOTURNA':'??','CLUBE':'??','ASSOCIACAO':'??',
+        'INDUSTRIA':'??','FLUTUANTE':'?','CONSTRUTORA':'??',
+        'LATEIRO':'??','BARRAQUEIRO':'??','PADARIA':'??','OUTROS':'??'
+      };
+      function getEmoji(seg){
+        if(!seg) return '??';
+        var s=seg.toUpperCase();
+        for(var k in segEmoji){ if(s.indexOf(k)>=0) return segEmoji[k]; }
+        return '??';
+      }
+      function criarPinEmoji(emoji, cor){
+        return {
+          url: 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">'+
+            '<path d="M18 0C8 0 0 8 0 18c0 12 18 26 18 26s18-14 18-26C36 8 28 0 18 0z" fill="'+cor+'"/>'+
+            '<circle cx="18" cy="18" r="13" fill="rgba(0,0,0,0.2)"/>'+
+            '<text x="18" y="23" font-size="14" text-anchor="middle">'+emoji+'</text>'+
+            '</svg>'
+          ),
+          scaledSize: new google.maps.Size(36, 44),
+          anchor: new google.maps.Point(18, 44)
+        };
+      }
       var cores=['#00BFFF','#00FF88','#FFD700','#a78bfa','#f97316','#f43f5e'];
       for(var ri=0;ri<rotas.length;ri++){
         var rot=rotas[ri]; if(rot.status==='optimized') continue;
@@ -5743,10 +5770,14 @@ async function loadTorreControle(){
           stops.forEach(function(s){
             var lat=parseFloat(s.lat),lng=parseFloat(s.lng); if(!lat||!lng) return;
             var sc=s.status==='completed'?'#00FF88':s.status==='failed'?'#FF3355':s.status==='reentrega'?'#FFD700':cr;
-            var mk=new google.maps.Marker({position:{lat:lat,lng:lng},map:window._monMap,
-              icon:{path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:sc,fillOpacity:1,strokeColor:'#001020',strokeWeight:2},
-              title:s.recipient_name});
-            var iw=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(s.recipient_name||'')+'</b><br>'+s.status+'</div>'});
+            var emoji=getEmoji(s.segmento);
+            var mk=new google.maps.Marker({
+              position:{lat:lat,lng:lng},
+              map:window._monMap,
+              icon:criarPinEmoji(emoji,sc),
+              title:s.recipient_name
+            });
+            var iw=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(s.recipient_name||'')+'</b><br>'+emoji+' '+(s.segmento||'')+'<br>'+s.status+'</div>'});
             mk.addListener('click',function(){iw.open(window._monMap,mk);});
             window._monMarkers.push(mk);
           });
