@@ -180,10 +180,13 @@ def create_route(body: RouteCreate, db: Session = Depends(get_db)):
 @router.get("/{route_id}/stops")
 def get_stops(route_id: str, db: Session = Depends(get_db)):
     rows = db.execute(text("""
-        SELECT stop_id, route_id, sequence, recipient_name, address,
-               lat, lng, weight_kg, status, eta, ata, atd,
-               failure_reason, codparc, foto_url
-        FROM route_stops WHERE route_id = :rid ORDER BY sequence
+        SELECT rs.stop_id, rs.route_id, rs.sequence, rs.recipient_name, rs.address,
+               rs.lat, rs.lng, rs.weight_kg, rs.status, rs.eta, rs.ata, rs.atd,
+               rs.failure_reason, rs.codparc, rs.foto_url,
+               c.segmento
+        FROM route_stops rs
+        LEFT JOIN clientes c ON c.codparc = rs.codparc
+        WHERE rs.route_id = :rid ORDER BY rs.sequence
     """), {"rid":route_id}).mappings().all()
     return [dict(r) for r in rows]
 
