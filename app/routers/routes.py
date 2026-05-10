@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
+from app.routers.auth import get_current_user
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 from datetime import datetime
