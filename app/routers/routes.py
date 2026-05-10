@@ -398,6 +398,6 @@ def get_gps_todos(db: Session = Depends(get_db)):
             SELECT MAX(g2.ts) FROM route_gps g2
             WHERE g2.route_id = g.route_id
         )
-        AND r.status = 'executing'
+        AND (r.status = 'executing' OR r.status = 'executando')
     """)).mappings().all()
     return [dict(r) for r in rows]
