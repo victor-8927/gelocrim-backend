@@ -69,10 +69,15 @@ class StopUpdate(BaseModel):
 
 def gerar_numero_viagem(db, data_str):
     data = data_str.replace("-","")[2:]
-    count = db.execute(text(
-        "SELECT COUNT(*) FROM routes WHERE route_date = :d"
-    ), {"d": data_str}).scalar() or 0
-    return f"VGM-{data}-{str(count+1).zfill(3)}"
+    row = db.execute(text(
+        "SELECT trip_number FROM routes WHERE route_date = :d ORDER BY trip_number DESC LIMIT 1"
+    ), {"d": data_str}).fetchone()
+    if row and row[0]:
+        try: last = int(row[0].split("-")[-1])
+        except: last = 0
+    else:
+        last = 0
+    return f"VGM-{data}-{str(last+1).zfill(3)}"
 
 # ── Endpoints ─────────────────────────────────────────────────
 @router.get("")
