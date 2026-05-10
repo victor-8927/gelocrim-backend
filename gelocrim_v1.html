@@ -5778,7 +5778,7 @@ async function loadTorreControle(){
           var cr=cores[ri%6];
           stops.forEach(function(s){
             var lat=parseFloat(s.lat),lng=parseFloat(s.lng); if(!lat||!lng) return;
-            var sc=s.status==='completed'?'#00FF88':s.status==='failed'?'#FF3355':s.status==='reentrega'?'#FFD700':cr;
+            var sc=s.status==='completed'||s.status==='concluído'?'#00FF88':s.status==='failed'||s.status==='falhou'?'#FF3355':s.status==='reentrega'?'#FFD700':s.status==='pending'||s.status==='pendente'?'#00BFFF':cr;
             var mk=new google.maps.Marker({
               position:{lat:lat,lng:lng},
               map:window._monMap,
