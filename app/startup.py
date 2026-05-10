@@ -50,6 +50,15 @@ def garantir_colunas():
             id TEXT PRIMARY KEY, nome TEXT, codigo TEXT,
             peso_unit REAL, unidade TEXT, created_at TEXT
         )""",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS gravidade TEXT DEFAULT 'info'",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS pedido TEXT",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS cliente TEXT",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS veiculo TEXT",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS foto TEXT",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS assinatura TEXT",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS gerar_devolucao INTEGER DEFAULT 0",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS atualizar_estoque INTEGER DEFAULT 0",
+        "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS updated_at TEXT",
         """CREATE TABLE IF NOT EXISTS ocorrencias (
             id TEXT PRIMARY KEY, route_id TEXT, stop_id TEXT,
             tipo TEXT, descricao TEXT, status TEXT DEFAULT 'pendente',
