@@ -65,6 +65,10 @@ class StopUpdate(BaseModel):
     lng_confirmacao: Optional[float] = None
     failure_reason: Optional[str] = None
     foto_base64: Optional[str] = None
+    foto_nf_base64: Optional[str] = None
+    foto_boleto_base64: Optional[str] = None
+    foto_comodato_base64: Optional[str] = None
+    foto_outros_base64: Optional[str] = None
     km_final: Optional[int] = None
 
 def gerar_numero_viagem(db, data_str):
@@ -277,18 +281,68 @@ async def update_stop(route_id: str, stop_id: str, body: StopUpdate,
     if body.lng_confirmacao: fields.append("lng_confirmacao=:lng_c");  params["lng_c"]=body.lng_confirmacao
     if body.failure_reason:  fields.append("failure_reason=:fr");      params["fr"]=body.failure_reason
 
-    if body.foto_base64:
+    def salvar_foto(base64_str, nome_arquivo, lat=None, lng=None):
         try:
-            import base64 as b64, os
-            header, data = body.foto_base64.split(",",1)
-            img = b64.b64decode(data)
+            import base64 as b64, os, io
+            from PIL import Image, ImageDraw, ImageFont
+            from datetime import datetime
+            header, data = base64_str.split(",",1)
+            img_bytes = b64.b64decode(data)
+            img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+            draw = ImageDraw.Draw(img)
+            w, h = img.size
+            agora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            gps_txt = f"GPS: {lat:.6f}, {lng:.6f}" if lat and lng else "GPS: indisponivel"
+            texto = f"GELOCRIM  {agora}  {gps_txt}"
+            font_size = max(16, w // 40)
+            try:
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+            except:
+                font = ImageFont.load_default()
+            margin = 10
+            bbox = draw.textbbox((0,0), texto, font=font)
+            tw = bbox[2]-bbox[0]; th = bbox[3]-bbox[1]
+            x = w - tw - margin; y = h - th - margin
+            draw.rectangle([x-5, y-5, x+tw+5, y+th+5], fill=(0,0,0,180))
+            draw.text((x, y), texto, fill=(0,255,136), font=font)
             pasta = os.environ.get("FOTOS_DIR", "fotos")
             os.makedirs(pasta, exist_ok=True)
-            nome = f"{stop_id}.jpg"
-            with open(os.path.join(pasta, nome),"wb") as f: f.write(img)
-            fields.append("foto_url=:foto_url")
-            params["foto_url"] = f"/fotos/{nome}"
-        except: pass
+            caminho = os.path.join(pasta, nome_arquivo)
+            img.save(caminho, "JPEG", quality=85)
+            return f"/fotos/{nome_arquivo}"
+        except Exception as e:
+            try:
+                import base64 as b64, os
+                header, data = base64_str.split(",",1)
+                pasta = os.environ.get("FOTOS_DIR", "fotos")
+                os.makedirs(pasta, exist_ok=True)
+                caminho = os.path.join(pasta, nome_arquivo)
+                with open(caminho,"wb") as ff: ff.write(b64.b64decode(data))
+                return f"/fotos/{nome_arquivo}"
+            except: return None
+
+    lat = body.lat_confirmacao
+    lng = body.lng_confirmacao
+
+    if body.foto_base64:
+        url = salvar_foto(body.foto_base64, f"{stop_id}.jpg", lat, lng)
+        if url: fields.append("foto_url=:foto_url"); params["foto_url"] = url
+
+    if hasattr(body, "foto_nf_base64") and body.foto_nf_base64:
+        url = salvar_foto(body.foto_nf_base64, f"{stop_id}_nf.jpg", lat, lng)
+        if url: fields.append("foto_url=:foto_url"); params["foto_url"] = url
+
+    if hasattr(body, "foto_boleto_base64") and body.foto_boleto_base64:
+        url = salvar_foto(body.foto_boleto_base64, f"{stop_id}_boleto.jpg", lat, lng)
+        if url: fields.append("foto_boleto_url=:foto_boleto_url"); params["foto_boleto_url"] = url
+
+    if hasattr(body, "foto_comodato_base64") and body.foto_comodato_base64:
+        url = salvar_foto(body.foto_comodato_base64, f"{stop_id}_comodato.jpg", lat, lng)
+        if url: fields.append("foto_comodato_url=:foto_comodato_url"); params["foto_comodato_url"] = url
+
+    if hasattr(body, "foto_outros_base64") and body.foto_outros_base64:
+        url = salvar_foto(body.foto_outros_base64, f"{stop_id}_outros.jpg", lat, lng)
+        if url: fields.append("foto_outros_url=:foto_outros_url"); params["foto_outros_url"] = url
 
     if not fields: raise HTTPException(400,"Nenhum campo")
     db.execute(text(f"UPDATE route_stops SET {', '.join(fields)} WHERE stop_id=:stop_id AND route_id=:route_id"), params)
