@@ -351,9 +351,10 @@ class GPSBody(BaseModel):
 async def receber_gps(route_id: str, body: GPSBody, db: Session = Depends(get_db)):
     try:
         db.execute(text("""
-            INSERT OR IGNORE INTO route_gps
+            INSERT INTO route_gps
                 (route_id, lat, lng, speed, heading, ts)
             VALUES (:rid, :lat, :lng, :spd, :hdg, :ts)
+            ON CONFLICT DO NOTHING
         """), {
             "rid": route_id,
             "lat": body.lat,
