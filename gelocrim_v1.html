@@ -5710,8 +5710,8 @@ async function loadTorreControle(){
     if(lista){
       if(!rotas.length){lista.innerHTML='<div style="color:#90afd4;font-size:12px;text-align:center;padding:20px">Nenhuma rota hoje</div>';}
       else{
-        var corS={optimized:'#90afd4',released:'#FFD700',executing:'#00BFFF',done:'#00FF88'};
-        var lblS={optimized:'Conferida',released:'Liberada',executing:'Em Rota',done:'Concluída'};
+        var corS={optimized:'#90afd4',otimizada:'#90afd4',released:'#FFD700',liberada:'#FFD700',executing:'#00BFFF',executando:'#00BFFF',done:'#00FF88',concluido:'#00FF88'};
+        var lblS={optimized:'Conferida',otimizada:'Conferida',released:'Liberada',liberada:'Liberada',executing:'Em Rota',executando:'Em Rota',done:'Concluída',concluido:'Concluída'};
         lista.innerHTML=rotas.map(function(r){
           var p=r.total_stops>0?Math.round((r.delivered_stops||0)/r.total_stops*100):0;
           var cor=corS[r.status]||'#90afd4';
@@ -5772,7 +5772,7 @@ async function loadTorreControle(){
       }
       var cores=['#00BFFF','#00FF88','#FFD700','#a78bfa','#f97316','#f43f5e'];
       for(var ri=0;ri<rotas.length;ri++){
-        var rot=rotas[ri]; if(rot.status==='optimized') continue;
+        var rot=rotas[ri]; if(rot.status==='optimized'||rot.status==='otimizada') continue;
         try{
           var stops=await api('GET','/routes/'+rot.route_id+'/stops');
           var cr=cores[ri%6];
