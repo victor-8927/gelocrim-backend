@@ -5732,7 +5732,7 @@ async function loadTorreControle(){
       if(!window._monMarkers) window._monMarkers=[];
       window._monMarkers.forEach(function(m){m.setMap(null);}); window._monMarkers=[];
       var mkDep=new google.maps.Marker({position:{lat:-3.093544,lng:-60.075812},map:window._monMap,
-        icon:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#e8521a',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},title:'Depósito'});
+        label:{text:'❄️',fontSize:'16px',fontFamily:'serif'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:18,fillColor:'#002D62',fillOpacity:1,strokeColor:'#00FFEA',strokeWeight:3},title:'Deposito Gelocrim'});
       window._monMarkers.push(mkDep);
       var segEmoji={
         'POSTO DE GASOLINA':'?','DISTRIBUIDORA':'??','SUPERMERCADO':'??',
@@ -5783,7 +5783,8 @@ async function loadTorreControle(){
             var mk=new google.maps.Marker({
               position:{lat:lat,lng:lng},
               map:window._monMap,
-              icon:criarPinEmoji(emoji,sc),
+              label:{text:emoji,fontSize:'14px',fontFamily:'serif'},
+              icon:{path:google.maps.SymbolPath.CIRCLE,scale:16,fillColor:sc,fillOpacity:1,strokeColor:'#001020',strokeWeight:2},
               title:s.recipient_name
             });
             var iw=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(s.recipient_name||'')+'</b><br>'+emoji+' '+(s.segmento||'')+'<br>'+s.status+'</div>'});
