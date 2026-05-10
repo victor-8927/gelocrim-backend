@@ -5749,16 +5749,25 @@ async function loadTorreControle(){
         return '??';
       }
       function criarPinEmoji(emoji, cor){
+        var canvas=document.createElement('canvas');
+        canvas.width=40; canvas.height=50;
+        var ctx=canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.moveTo(20,0);
+        ctx.bezierCurveTo(35,0,40,12,40,20);
+        ctx.bezierCurveTo(40,32,20,50,20,50);
+        ctx.bezierCurveTo(20,50,0,32,0,20);
+        ctx.bezierCurveTo(0,12,5,0,20,0);
+        ctx.fillStyle=cor;
+        ctx.fill();
+        ctx.font='18px serif';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(emoji,20,18);
         return {
-          url: 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">'+
-            '<path d="M18 0C8 0 0 8 0 18c0 12 18 26 18 26s18-14 18-26C36 8 28 0 18 0z" fill="'+cor+'"/>'+
-            '<circle cx="18" cy="18" r="13" fill="rgba(0,0,0,0.2)"/>'+
-            '<text x="18" y="23" font-size="14" text-anchor="middle">'+emoji+'</text>'+
-            '</svg>'
-          ),
-          scaledSize: new google.maps.Size(36, 44),
-          anchor: new google.maps.Point(18, 44)
+          url: canvas.toDataURL(),
+          scaledSize: new google.maps.Size(40,50),
+          anchor: new google.maps.Point(20,50)
         };
       }
       var cores=['#00BFFF','#00FF88','#FFD700','#a78bfa','#f97316','#f43f5e'];
