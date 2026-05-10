@@ -308,18 +308,13 @@ async def update_stop(route_id: str, stop_id: str, body: StopUpdate,
             pasta = os.environ.get("FOTOS_DIR", "fotos")
             os.makedirs(pasta, exist_ok=True)
             caminho = os.path.join(pasta, nome_arquivo)
-            img.save(caminho, "JPEG", quality=85)
-            return f"/fotos/{nome_arquivo}"
+            buf = io.BytesIO()
+            img.save(buf, "JPEG", quality=80)
+            buf.seek(0)
+            b64_final = b64.b64encode(buf.read()).decode()
+            return f"data:image/jpeg;base64,{b64_final}"
         except Exception as e:
-            try:
-                import base64 as b64, os
-                header, data = base64_str.split(",",1)
-                pasta = os.environ.get("FOTOS_DIR", "fotos")
-                os.makedirs(pasta, exist_ok=True)
-                caminho = os.path.join(pasta, nome_arquivo)
-                with open(caminho,"wb") as ff: ff.write(b64.b64decode(data))
-                return f"/fotos/{nome_arquivo}"
-            except: return None
+            return base64_str
 
     lat = body.lat_confirmacao
     lng = body.lng_confirmacao
