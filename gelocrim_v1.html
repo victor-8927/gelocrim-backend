@@ -5793,7 +5793,7 @@ async function loadTorreControle(){
               },
               title:s.recipient_name
             });
-            var iw=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(s.recipient_name||'')+'</b><br>'+emoji+' '+(s.segmento||'')+'<br>'+s.status+'</div>'});
+            var iw=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(s.recipient_name||'')+'</b><br>'+(s.segmento||'')+'<br>'+s.status+'</div>'});
             mk.addListener('click',function(){iw.open(window._monMap,mk);});
             window._monMarkers.push(mk);
           });
