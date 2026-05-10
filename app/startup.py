@@ -64,6 +64,13 @@ def garantir_colunas():
             tipo TEXT, descricao TEXT, status TEXT DEFAULT 'pendente',
             created_at TEXT, resolved_at TEXT
         )""",
+        """CREATE TABLE IF NOT EXISTS itens_producao (
+            id TEXT PRIMARY KEY, nome TEXT, peso REAL DEFAULT 0,
+            comprimento REAL DEFAULT 0, largura REAL DEFAULT 0,
+            altura REAL DEFAULT 0, un_pallet INTEGER DEFAULT 0,
+            top TEXT DEFAULT '1000', observacao TEXT,
+            created_at TEXT, updated_at TEXT
+        )""",
     ]
     with engine_sync.connect() as conn:
         for sql in cmds:
