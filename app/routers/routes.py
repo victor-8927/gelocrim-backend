@@ -274,7 +274,7 @@ async def update_stop(route_id: str, stop_id: str, body: StopUpdate,
             import base64 as b64, os
             header, data = body.foto_base64.split(",",1)
             img = b64.b64decode(data)
-            pasta = r"C:\fleet-cloud\fotos"
+            pasta = os.environ.get("FOTOS_DIR", "fotos")
             os.makedirs(pasta, exist_ok=True)
             nome = f"{stop_id}.jpg"
             with open(os.path.join(pasta, nome),"wb") as f: f.write(img)
@@ -335,4 +335,66 @@ def listar_gps(route_id: str, limit: int = 100, db: Session = Depends(get_db)):
         FROM route_gps WHERE route_id = :rid
         ORDER BY ts DESC LIMIT :lim
     """), {"rid": route_id, "lim": limit}).mappings().all()
+    return [dict(r) for r in rows]
+
+class GPSBody(BaseModel):
+    lat: float
+    lng: float
+    speed: Optional[float] = 0
+    heading: Optional[float] = 0
+    ts: Optional[str] = None
+
+@router.post("/{route_id}/gps")
+async def receber_gps(route_id: str, body: GPSBody, db: Session = Depends(get_db)):
+    try:
+        db.execute(text("""
+            INSERT OR IGNORE INTO route_gps
+                (route_id, lat, lng, speed, heading, ts)
+            VALUES (:rid, :lat, :lng, :spd, :hdg, :ts)
+        """), {
+            "rid": route_id,
+            "lat": body.lat,
+            "lng": body.lng,
+            "spd": body.speed or 0,
+            "hdg": body.heading or 0,
+            "ts": body.ts or __import__("datetime").datetime.now().isoformat()
+        })
+        db.commit()
+    except: pass
+    try:
+        await manager.broadcast(route_id, {
+            "type": "gps_update",
+            "route_id": route_id,
+            "lat": body.lat,
+            "lng": body.lng,
+            "speed": body.speed,
+            "heading": body.heading,
+            "ts": body.ts
+        })
+    except: pass
+    return {"ok": True}
+
+@router.get("/{route_id}/gps")
+def get_gps(route_id: str, db: Session = Depends(get_db)):
+    rows = db.execute(text("""
+        SELECT lat, lng, speed, heading, ts
+        FROM route_gps WHERE route_id = :rid
+        ORDER BY ts DESC LIMIT 1
+    """), {"rid": route_id}).mappings().all()
+    return [dict(r) for r in rows]
+
+@router.get("/gps/todos")
+def get_gps_todos(db: Session = Depends(get_db)):
+    rows = db.execute(text("""
+        SELECT g.route_id, g.lat, g.lng, g.speed, g.heading, g.ts,
+               d.name as driver_name, r.trip_number, r.status
+        FROM route_gps g
+        JOIN routes r ON r.id = g.route_id
+        LEFT JOIN drivers d ON d.id = r.driver_id
+        WHERE g.ts = (
+            SELECT MAX(g2.ts) FROM route_gps g2
+            WHERE g2.route_id = g.route_id
+        )
+        AND r.status = "executing"
+    """)).mappings().all()
     return [dict(r) for r in rows]
