@@ -70,8 +70,16 @@ async def login(body: LoginBody, db: Session = Depends(get_db)):
     raise HTTPException(status_code=401, detail="Credenciais invalidas!")
 
 @router.get("/me")
-async def me():
-    return ADMIN_USER
+async def me(token: str = Depends(security)):
+    if not token or not token.credentials:
+        raise HTTPException(status_code=401, detail="Token invalido")
+    cred = token.credentials
+    if cred == "admin-jwt-token":
+        return ADMIN_USER
+    if cred.startswith("driver-"):
+        cpf = cred.split("-")[1]
+        return {"id": cpf, "role": "driver", "cpf": cpf}
+    raise HTTPException(status_code=401, detail="Token invalido")
 
 async def get_current_user(token: str = Depends(security)):
     if not token or not token.credentials:
