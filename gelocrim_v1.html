@@ -5251,6 +5251,13 @@ function abrirLightbox(url) {
   lb._url = url;
 }
 
+function imprimirFoto() {
+  var url = document.getElementById('lightbox-fotos')._url;
+  var w = window.open('');
+  w.document.write('<img src="'+url+'" style="max-width:100%">');
+  w.document.close();
+  w.print();
+}
 function baixarFoto() {
   var url = document.getElementById('lightbox-fotos')._url;
   var a = document.createElement('a');
