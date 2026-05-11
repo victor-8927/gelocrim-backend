@@ -1,0 +1,22 @@
+﻿name: Cron Diario Gelocrim
+
+on:
+  schedule:
+    - cron: "0 2 * * *"  # 23:00 Manaus (UTC-4 = 03:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  fechar_rotas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fechar rotas nao finalizadas
+        run: |
+          curl -s -X POST "https://gelocrim-backend-production.up.railway.app/api/v1/cron/fechar-rotas" \
+            -H "Authorization: Bearer admin-jwt-token" \
+            -H "Content-Type: application/json"
+
+      - name: Limpar GPS antigo
+        run: |
+          curl -s -X POST "https://gelocrim-backend-production.up.railway.app/api/v1/cron/limpar-gps" \
+            -H "Authorization: Bearer admin-jwt-token" \
+            -H "Content-Type: application/json"

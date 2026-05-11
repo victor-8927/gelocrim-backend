@@ -16,6 +16,7 @@ from app.routers.ocorrencias import router as ocorrencias_router
 from app.routers.clientes import router as clientes_router
 from app.routers.order_items import router as order_items_router
 from app.routers.proxy import router_proxy
+from app.routers.cron import router as cron_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,6 +50,7 @@ app.include_router(ocorrencias_router)
 app.include_router(clientes_router)
 app.include_router(order_items_router)
 app.include_router(router_proxy)
+app.include_router(cron_router)
 
 @app.get("/health")
 def health():
