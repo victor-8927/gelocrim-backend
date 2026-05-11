@@ -312,8 +312,12 @@ async def update_stop(route_id: str, stop_id: str, body: StopUpdate,
             bbox = draw.textbbox((0,0), texto, font=font)
             tw = bbox[2]-bbox[0]; th = bbox[3]-bbox[1]
             x = w - tw - margin; y = h - th - margin
-            draw.rectangle([x-5, y-5, x+tw+5, y+th+5], fill=(0,0,0,180))
-            draw.text((x, y), texto, fill=(0,255,136), font=font)
+            overlay = Image.new("RGBA", img.size, (0,0,0,0))
+            ov_draw = ImageDraw.Draw(overlay)
+            ov_draw.rectangle([x-5, y-5, x+tw+5, y+th+5], fill=(0,0,0,180))
+            ov_draw.text((x, y), texto, fill=(0,255,136,255), font=font)
+            img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+            draw = ImageDraw.Draw(img)
             buf = io.BytesIO()
             img.save(buf, "JPEG", quality=80)
             buf.seek(0)
