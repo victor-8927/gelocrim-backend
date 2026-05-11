@@ -314,9 +314,6 @@ async def update_stop(route_id: str, stop_id: str, body: StopUpdate,
             x = w - tw - margin; y = h - th - margin
             draw.rectangle([x-5, y-5, x+tw+5, y+th+5], fill=(0,0,0,180))
             draw.text((x, y), texto, fill=(0,255,136), font=font)
-            pasta = os.environ.get("FOTOS_DIR", "fotos")
-            os.makedirs(pasta, exist_ok=True)
-            caminho = os.path.join(pasta, nome_arquivo)
             buf = io.BytesIO()
             img.save(buf, "JPEG", quality=80)
             buf.seek(0)
