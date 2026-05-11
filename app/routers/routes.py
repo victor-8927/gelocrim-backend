@@ -314,6 +314,8 @@ async def update_stop(route_id: str, stop_id: str, body: StopUpdate,
             b64_final = b64.b64encode(buf.read()).decode()
             return f"data:image/jpeg;base64,{b64_final}"
         except Exception as e:
+            import logging
+            logging.error(f'Erro marca dagua: {e}')
             return base64_str
 
     lat = body.lat_confirmacao
