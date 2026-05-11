@@ -71,6 +71,15 @@ class StopUpdate(BaseModel):
     foto_outros_base64: Optional[str] = None
     km_final: Optional[int] = None
 
+def haversine(lat1, lon1, lat2, lon2):
+    from math import radians, sin, cos, sqrt, atan2
+    R = 6371000
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat/2)**2 + cos(lat1)*cos(lat2)*sin(dlon/2)**2
+    return R * 2 * atan2(sqrt(a), sqrt(1-a))
+
 def gerar_numero_viagem(db, data_str):
     data = data_str.replace("-","")[2:]
     row = db.execute(text(
@@ -441,6 +450,21 @@ def get_gps(route_id: str, db: Session = Depends(get_db)):
         ORDER BY ts DESC LIMIT 1
     """), {"rid": route_id}).mappings().all()
     return [dict(r) for r in rows]
+
+@router.get("/{route_id}/stops/{stop_id}/proximidade")
+def verificar_proximidade(route_id: str, stop_id: str, lat: float, lng: float, db: Session = Depends(get_db)):
+    stop = db.execute(text("SELECT lat, lng, recipient_name FROM route_stops WHERE stop_id=:id"), {"id": stop_id}).fetchone()
+    if not stop or not stop[0] or not stop[1]:
+        return {"dentro": False, "distancia_m": None, "mensagem": "Coordenadas do cliente nao disponiveis"}
+    distancia = haversine(lat, lng, float(stop[0]), float(stop[1]))
+    dentro = distancia <= 200
+    return {
+        "dentro": dentro,
+        "distancia_m": round(distancia),
+        "limite_m": 200,
+        "cliente": stop[2],
+        "mensagem": f"Voce esta a {round(distancia)}m do cliente" if not dentro else "Voce esta no local!"
+    }
 
 @router.get("/gps/todos")
 def get_gps_todos(db: Session = Depends(get_db)):
