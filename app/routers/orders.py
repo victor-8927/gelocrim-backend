@@ -254,9 +254,7 @@ def bulk_planilha(body: dict = Body(...), db: Session = Depends(get_db)):
                 db.execute(text("DELETE FROM order_items WHERE invoice_number = :ext"), {"ext": ext_id})
                 for it in itens:
                     db.execute(text("""
-                        INSERT INTO order_items (codparc, top_app, item_type, item_name,
-                            weight_unit, qty, negotiation_date, invoice_number, created_at)
-                        VALUES (:cp, :top, :tipo, :nome, :peso, :qty, :ddate, :inv, :ts)
+                        INSERT INTO order_items (id, codparc, top_app, item_type, item_name, weight_unit, qty, negotiation_date, invoice_number, created_at) VALUES (gen_random_uuid(), :cp, :top, :tipo, :nome, :peso, :qty, :ddate, :inv, :ts)
                     """), {
                         "cp": codparc, "top": it.get("top_app", "1000"),
                         "tipo": it.get("item_type"), "nome": it.get("item_name"),
@@ -269,3 +267,4 @@ def bulk_planilha(body: dict = Body(...), db: Session = Depends(get_db)):
     except Exception:
         print("ERROR bulk_planilha:", traceback.format_exc())
         raise
+
