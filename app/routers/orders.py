@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.db_compat import now_str
 from app.routers.auth import get_current_user
+from app.translations import normalizar, normalizar_status, normalizar_codparc
+from app.translations import normalizar, normalizar_status, normalizar_codparc
 
 router = APIRouter(prefix="/api/v1/orders", tags=["Orders"])
 
@@ -122,35 +124,18 @@ def create_order(order: dict = Body(...), db: Session = Depends(get_db)):
     try:
         ts = now_str()
 
-        # Normalizar campos PT -> EN
-        name = (order.get("recipient_name") or order.get("nome_do_destinatario") or
-                order.get("nome") or "Cliente")
-        addr = (order.get("address") or order.get("endereco") or
-                order.get("endereço") or "Manaus - AM")
-        lat  = order.get("lat")
-        lng  = order.get("lng")
-
-        # Normalizar peso
-        weight = order.get("weight_kg") or order.get("peso_kg") or 0
-
-        # Normalizar regiao
-        region = order.get("region") or order.get("regiao") or order.get("região") or ""
-
-        # Normalizar codparc
-        codparc = order.get("codparc")
-        if codparc:
-            try: codparc = int(str(codparc).strip())
-            except: codparc = None
-
-        # Normalizar status
-        status_map = {"pendente":"pending","roteado":"routed","entregue":"delivered",
-                      "falhou":"failed","entrega":"delivered","concluido":"delivered"}
-        status = order.get("status", "pending")
-        status = status_map.get(status, status)
-
-        # Normalizar tw
-        tw_start = order.get("tw_start") or order.get("inicio_tw") or "07:30"
-        tw_end   = order.get("tw_end")   or order.get("fim_tw")    or "18:00"
+        # Normalizar campos PT -> EN usando dicionario central
+        order = normalizar(order)
+        name   = order.get("recipient_name") or order.get("name") or "Cliente"
+        addr   = order.get("address") or "Manaus - AM"
+        lat    = order.get("lat")
+        lng    = order.get("lng")
+        weight = order.get("weight_kg") or 0
+        region = order.get("region") or ""
+        codparc = normalizar_codparc(order.get("codparc"))
+        status  = normalizar_status(order.get("status", "pending"))
+        tw_start = order.get("tw_start") or "07:30"
+        tw_end   = order.get("tw_end")   or "18:00"
 
         ext_id = order.get("external_id", "")
 
