@@ -4315,33 +4315,33 @@ function detalharParceiro(codparc) {
     // Grid de informações
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+
     campo('Código ERP', c.codparc)+
-    campo('Nome Fantasia', c.nome)+
+    campo('Nome Fantasia', c.trade_name)+
     campo('Razão Social', c.legal_name)+
     campo('CPF/CNPJ', c.tax_id)+
-    campo('Telefone', c.telefone)+
+    campo('Telefone', c.phone)+
     campo('Segmento', c.segment)+
     '</div>'+
 
     '<div style="font-size:10px;font-weight:700;color:#64B4FF;letter-spacing:1.5px;margin-bottom:8px">📦 LOGÍSTICA E ROTEIRIZAÇÃO</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">'+
-    campoDestaque('Rota', c.rota || c.regiao, '#f59e0b')+
+    campoDestaque('Rota', c.route || c.region, '#f59e0b')+
     campoDestaque('Zona Geo', c.geo_zone, '#a78bfa')+
     campoDestaque('⏱️ Tempo Médio', janela, '#64B4FF')+
     '</div>'+
 
     '<div style="font-size:10px;font-weight:700;color:#64B4FF;letter-spacing:1.5px;margin-bottom:8px">🏠 ENDEREÇO</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+
-    '<div style="grid-column:1/-1">'+campo('Endereço Completo', c.endereco)+'</div>'+
+    '<div style="grid-column:1/-1">'+campo('Endereço Completo', c.address)+'</div>'+
     campo('Bairro', c.district)+
     campo('Cidade', c.city ? c.city.replace(' - AM','').replace('/AM','') : '—')+
-    campo('CEP', c.cep)+
+    campo('CEP', c.zip_code)+
     campo('Estado', 'AM')+
     '</div>'+
 
     '<div style="font-size:10px;font-weight:700;color:#64B4FF;letter-spacing:1.5px;margin-bottom:8px">📋 OUTROS</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
     campo('Comodatos', c.loans)+
-    campo('Status', c.ativo==="S"?"✅ Ativo":"❌ Inativo")+
+    campo('Status', c.status==="active"?"✅ Ativo":"❌ Inativo")+
     '</div>';
 
   var existing = document.getElementById('modal-parceiro-detalhe');
