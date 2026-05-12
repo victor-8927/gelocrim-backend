@@ -3310,7 +3310,7 @@ function abrirConferenciaMaster() {
         coords.push(pos);
         bounds.extend(pos);
         // Definir cor e emoji por segmento
-        var seg = (o.segmento||o.segment||'').toUpperCase();
+        var seg = (o.segment||o.segment||'').toUpperCase();
         var pinCor, pinEmoji;
         if (seg.indexOf('POSTO') >= 0 || seg.indexOf('COMBUST') >= 0) {
           pinCor = '#FF6B35'; pinEmoji = '⛽';
@@ -3434,7 +3434,7 @@ function abrirConferenciaMaster() {
             var o = confOrdem[li];
             var tDeslocSeg = legs[li] ? legs[li].duration.value : 0;
             var tDeslocMin = Math.round(tDeslocSeg / 60);
-            var tAtend = parseInt(o.tempo_entrega || o._tempoAtend || 20);
+            var tAtend = parseInt(o.service_time || o._tempoAtend || 20);
             var distKmLeg = legs[li] ? (legs[li].distance.value / 1000).toFixed(1) : '--';
 
             // Inserir almoco automatico
@@ -3711,9 +3711,9 @@ async function loadRotMapData(){
           lng: cli&&cli.lng ? parseFloat(cli.lng) : (o.lng?parseFloat(o.lng):null),
           regiao: (cli?cli.regiao:null)||o.regiao||'',
           rota: cli?cli.rota:'',
-          bairro: cli?cli.bairro:'',
-          cidade: cli?cli.cidade:'Manaus',
-          tempo_entrega: cli?cli.tempo_entrega:'0',
+          bairro: cli?cli.district:'',
+          cidade: cli?cli.city:'Manaus',
+          tempo_entrega: cli?cli.service_time:'0',
           weight_kg: 0,
           volume_m3: 0,
           pedidos: [],
@@ -3758,7 +3758,7 @@ async function loadRotMapData(){
     var selB=document.getElementById('rot-filtro-bairro');
     if(selB){
       var bairros={};
-      items.forEach(function(o){if(o.bairro)bairros[o.bairro]=1;});
+      items.forEach(function(o){if(o.district)bairros[o.district]=1;});
       selB.innerHTML='<option value="">🏘️ Todos bairros</option>'+
         Object.keys(bairros).sort().map(function(b){return '<option value="'+b+'">'+b+'</option>';}).join('');
     }
@@ -3892,7 +3892,7 @@ function buscarFiltrados(){
     if(!o.lat||!o.lng) return false;
     if(vr   && (o.rota||o.regiao||'').indexOf(vr)<0)   return false;
     if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
-    if(vb   && (o.bairro||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
+    if(vb   && (o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
     if(vs   && (o.recipient_name||'').toLowerCase().indexOf(vs)<0) return false;
     return true;
   });
@@ -3925,7 +3925,7 @@ function renderRotMapMarkers(orders){
       if(!o.lat||!o.lng) return false;
       if(vr   && (o.rota||o.regiao||'').indexOf(vr)<0)   return false;
       if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
-      if(vb   && (o.bairro||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
+      if(vb   && (o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
       if(vs   && (o.recipient_name||'').toLowerCase().indexOf(vs)<0) return false;
       return true;
     });
@@ -3937,7 +3937,7 @@ function renderRotMapMarkers(orders){
 
     // Cores neon por segmento
     function getCorSegmento(o) {
-      var seg = (o.segmento||o.segment||'').toUpperCase();
+      var seg = (o.segment||o.segment||'').toUpperCase();
       if (seg.indexOf('POSTO') >= 0 || seg.indexOf('COMBUST') >= 0) return '#FF6B35';
       if (seg.indexOf('ILHA') >= 0 || seg.indexOf('GELAD') >= 0)    return '#00FFEA';
       if (seg.indexOf('FABRIC') >= 0 || seg.indexOf('INDUST') >= 0) return '#BF5FFF';
@@ -3955,7 +3955,7 @@ function renderRotMapMarkers(orders){
       var sel = !!window.rotSelecionados[o.id];
       var cor = sel ? '#00FF88' : getCorSegmento(o);
       var nPedidos = (o.pedidos||[]).length;
-      var tempoMin = parseInt(o.tempo_entrega)||0;
+      var tempoMin = parseInt(o.service_time)||0;
 
       var mk = new google.maps.Marker({
         position: {lat:parseFloat(o.lat), lng:parseFloat(o.lng)},
@@ -3979,7 +3979,7 @@ function renderRotMapMarkers(orders){
         '<div style="font-family:Arial;font-size:12px;padding:8px;min-width:210px;max-width:260px">'+
         '<b style="font-size:14px;color:#1a3a5c">'+(o.recipient_name||'—')+'</b><br>'+
         '<span style="color:#e8521a;font-weight:700;font-size:12px">🗺️ Rota '+(o.rota||o.regiao||'—')+'</span><br>'+
-        (o.bairro?'<span style="color:#555">🏘️ '+o.bairro+'</span><br>':'')+
+        (o.district?'<span style="color:#555">🏘️ '+o.district+'</span><br>':'')+
         '<span style="color:#555">📦 '+nPedidos+' pedido(s) | '+(o.weight_kg||0).toFixed(0)+' kg total</span><br>'+
         '<span style="color:#555">⏱️ Tempo médio: '+(tempoMin>0?tempoMin+' min':'—')+'</span>'+
         '</div>';
@@ -4272,13 +4272,13 @@ function renderClientes(lista) {
       ? '<span style="color:#10b981;font-size:10px">✓ '+parseFloat(c.lat).toFixed(4)+', '+parseFloat(c.lng).toFixed(4)+'</span>'
       : '<span style="color:#f87171">Sem GPS</span>';
     var at  = c.ativo==='S'?'active':'inactive';
-    var cidade = (c.cidade||'').replace(' - AM','');
+    var cidade = (c.city||'').replace(' - AM','');
     var codStr = String(c.codparc||'');
     rows += '<tr>'+
       '<td style="font-family:monospace;color:#64B4FF">'+codStr+'</td>'+
       '<td><b>'+(c.nome||'—')+'</b></td>'+
       '<td style="font-size:11px;color:#90afd4;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(c.endereco||'—')+'</td>'+
-      '<td style="font-size:11px">'+(c.bairro||'—')+'</td>'+
+      '<td style="font-size:11px">'+(c.district||'—')+'</td>'+
       '<td style="font-size:11px">'+cidade+'</td>'+
       '<td><span class="badge active" style="font-size:9px">'+(c.regiao||'—')+'</span></td>'+
       '<td style="font-size:10px">'+gps+'</td>'+
@@ -4302,7 +4302,7 @@ function detalharParceiro(codparc) {
       '</div>'
     : '<span style="color:#f87171">⚠️ Sem coordenadas GPS — necessário para roteirização</span>';
 
-  var tempoEntrega = c.tempo_entrega || c.tempo_medio || '—';
+  var tempoEntrega = c.service_time || c.tempo_medio || '—';
   var janela = tempoEntrega !== '—' ? tempoEntrega + ' min' : '—';
 
   var html =
@@ -4316,31 +4316,31 @@ function detalharParceiro(codparc) {
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+
     campo('Código ERP', c.codparc)+
     campo('Nome Fantasia', c.nome)+
-    campo('Razão Social', c.razao_social)+
-    campo('CPF/CNPJ', c.cpf_cnpj)+
+    campo('Razão Social', c.legal_name)+
+    campo('CPF/CNPJ', c.tax_id)+
     campo('Telefone', c.telefone)+
-    campo('Segmento', c.segmento)+
+    campo('Segmento', c.segment)+
     '</div>'+
 
     '<div style="font-size:10px;font-weight:700;color:#64B4FF;letter-spacing:1.5px;margin-bottom:8px">📦 LOGÍSTICA E ROTEIRIZAÇÃO</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">'+
     campoDestaque('Rota', c.rota || c.regiao, '#f59e0b')+
-    campoDestaque('Zona Geo', c.zona_geo, '#a78bfa')+
+    campoDestaque('Zona Geo', c.geo_zone, '#a78bfa')+
     campoDestaque('⏱️ Tempo Médio', janela, '#64B4FF')+
     '</div>'+
 
     '<div style="font-size:10px;font-weight:700;color:#64B4FF;letter-spacing:1.5px;margin-bottom:8px">🏠 ENDEREÇO</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+
     '<div style="grid-column:1/-1">'+campo('Endereço Completo', c.endereco)+'</div>'+
-    campo('Bairro', c.bairro)+
-    campo('Cidade', c.cidade ? c.cidade.replace(' - AM','').replace('/AM','') : '—')+
+    campo('Bairro', c.district)+
+    campo('Cidade', c.city ? c.city.replace(' - AM','').replace('/AM','') : '—')+
     campo('CEP', c.cep)+
     campo('Estado', 'AM')+
     '</div>'+
 
     '<div style="font-size:10px;font-weight:700;color:#64B4FF;letter-spacing:1.5px;margin-bottom:8px">📋 OUTROS</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
-    campo('Comodatos', c.comodatos)+
+    campo('Comodatos', c.loans)+
     campo('Status', c.ativo==="S"?"✅ Ativo":"❌ Inativo")+
     '</div>';
 
@@ -4461,8 +4461,8 @@ function lerBaseClientesXLS(input) {
       if(btn&&parceiros.length>0){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';}
       // Converte tempo Excel para minutos
       parceiros.forEach(function(p){
-        if(p.tempo_entrega && p.tempo_entrega !== '') {
-          var val = p.tempo_entrega;
+        if(p.service_time && p.service_time !== '') {
+          var val = p.service_time;
           var minutos = 0;
           if(String(val).indexOf(':')>=0){
             // Formato HH:MM:SS
@@ -4480,19 +4480,19 @@ function lerBaseClientesXLS(input) {
               }
             }
           }
-          p.tempo_entrega = minutos > 0 ? String(minutos) : '';
+          p.service_time = minutos > 0 ? String(minutos) : '';
         }
         // Extrai só a cidade antes de /UF
-        if(p.cidade && p.cidade.indexOf('/')>=0){
-          p.cidade = p.cidade.split('/')[0].trim();
+        if(p.city && p.city.indexOf('/')>=0){
+          p.city = p.city.split('/')[0].trim();
         }
-        if(p.cidade && p.cidade.indexOf('-')>=0 && p.cidade.length < 6){
-          p.cidade = 'Manaus';
+        if(p.city && p.city.indexOf('-')>=0 && p.city.length < 6){
+          p.city = 'Manaus';
         }
-        if(!p.cidade || p.cidade.trim()==='') p.cidade = 'Manaus';
+        if(!p.city || p.city.trim()==='') p.city = 'Manaus';
       });
       window._clientesParaImportar=parceiros;
-      toast(parceiros.length+' parceiros prontos! ('+parceiros.filter(function(p){return p.tempo_entrega&&p.tempo_entrega!=='0';}).length+' com tempo médio)','success');
+      toast(parceiros.length+' parceiros prontos! ('+parceiros.filter(function(p){return p.service_time&&p.service_time!=='0';}).length+' com tempo médio)','success');
     } catch(err){toast('Erro: '+err.message,'error');}
   };
   reader.readAsBinaryString(file);
@@ -4605,7 +4605,7 @@ function renderOrders(orders) {
       '<td style="color:#a78bfa;font-weight:700">'+(o.weight_kg||0)+'</td>'+
       '<td style="color:#10b981">'+(o.total_value?'R$ '+parseFloat(o.total_value).toFixed(2):'—')+'</td>'+
       '<td><span class="badge active" style="font-size:9px">'+tl+'</span></td>'+
-      '<td style="font-size:11px;color:#90afd4">'+(o.tempo_entrega&&o.tempo_entrega!==''?o.tempo_entrega+' min':'—')+'</td>'+
+      '<td style="font-size:11px;color:#90afd4">'+(o.service_time&&o.service_time!==''?o.service_time+' min':'—')+'</td>'+
       '<td style="text-align:center">'+gps+'</td>'+
       '<td><span class="badge '+(o.status||'pending')+'">'+(o.status||'pending')+'</span></td>'+
       '<td><button class="btn btn-sm btn-secondary" data-id="'+o.id+'" onclick="verDetalhePedido(this.dataset.id)">Ver</button></td>'+
@@ -4740,7 +4740,7 @@ function processarLinhas(rows) {
       codparc:parseInt(get('codparc'))||null,
       lat:(clienteBase&&clienteBase.lat)||null,
       lng:(clienteBase&&clienteBase.lng)||null,
-      time_window_end:(clienteBase&&clienteBase.tempo_entrega)?String(parseInt(clienteBase.tempo_entrega)):'60',
+      time_window_end:(clienteBase&&clienteBase.service_time)?String(parseInt(clienteBase.service_time)):'60',
       weight_kg:peso,volume_m3:parseBR(get('volume')),total_value:parseBR(get('valor')),
       order_type:(function(){
         var t=String(get('top')||'').trim();
@@ -5803,7 +5803,7 @@ async function loadTorreControle(){
               },
               title:s.recipient_name
             });
-            var iw=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(s.recipient_name||'')+'</b><br>'+(s.segmento||'')+'<br>'+s.status+'</div>'});
+            var iw=new google.maps.InfoWindow({content:'<div style="background:#0a1628;color:#e8f0fe;padding:8px;border-radius:6px;font-size:12px"><b>'+(s.recipient_name||'')+'</b><br>'+(s.segment||'')+'<br>'+s.status+'</div>'});
             mk.addListener('click',function(){iw.open(window._monMap,mk);});
             window._monMarkers.push(mk);
           });
@@ -6173,7 +6173,7 @@ function renderizarListaConf() {
   lista.innerHTML = confOrdem.map(function(o, i) {
     var peso      = (parseFloat(o.weight_kg)||0).toFixed(0);
     var eta       = o._eta || '--';
-    var tAtend    = o.tempo_entrega || o._tempoAtend || 20;
+    var tAtend    = o.service_time || o._tempoAtend || 20;
     var distKm    = o._distKm ? o._distKm + ' km' : '--';
     var tDeslocMin = o._tDeslocMin || '--';
     var jornadaCor = o._jornadaCor || '#64B4FF';
@@ -6273,7 +6273,7 @@ function atualizarEtaConf() {
     var tempoViagem = Math.round(distKm / VEL_MEDIA * 60);
 
     // Tempo de atendimento real do cliente
-    var tempoAtend = parseInt(o.tempo_entrega || 20);
+    var tempoAtend = parseInt(o.service_time || 20);
 
     // Inserir almoco se ainda nao foi e vai passar das 12:00
     if (!almocoFeito && (minutos + tempoViagem) >= ALMOCO_MIN) {
@@ -6391,7 +6391,7 @@ function reprocessarSequencia() {
     // Agrupar por regiao/bairro e dentro de cada grupo otimizar
     var grupos = {};
     comGPS.forEach(function(o){
-      var chave = o.regiao || o.bairro || 'SEM_REGIAO';
+      var chave = o.regiao || o.district || 'SEM_REGIAO';
       if (!grupos[chave]) grupos[chave] = [];
       grupos[chave].push(o);
     });
@@ -6524,7 +6524,7 @@ async function atualizarRotaMapa() {
     confOrdem.forEach(function(o, i) {
       if (i < legs.length) {
         var duracaoMin = Math.round(legs[i].duration.value / 60);
-        var tempoParada = parseInt(o.tempo_entrega || 15);
+        var tempoParada = parseInt(o.service_time || 15);
         distTotal += legs[i].distance.value;
         minTotais += duracaoMin + tempoParada;
         var h = Math.floor(minTotais/60) % 24;
