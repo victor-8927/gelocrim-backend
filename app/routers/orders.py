@@ -31,7 +31,7 @@ class OrderOut(BaseModel):
     region: Optional[str] = None
     priority: Optional[int] = 1
     codparc: Optional[int] = None
-    tempo_entrega: Optional[str] = None
+    service_time: Optional[str] = None
     model_config = {"from_attributes": True}
 
 
@@ -209,4 +209,5 @@ def update_order_status(oid: str, body: dict = Body(...),
                {"s": status, "ts": now_str(), "id": oid})
     db.commit()
     return {"updated": True}
+
 
