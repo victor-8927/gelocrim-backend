@@ -36,9 +36,9 @@ async def login(body: LoginBody, db: Session = Depends(get_db)):
     cpf = email.replace(".", "").replace("-", "").replace("/", "")
     if cpf.isdigit() and len(cpf) == 11:
         motorista = db.execute(text("""
-            SELECT id, name, cpf, tipo FROM drivers
+            SELECT id, name, cpf, type FROM drivers
             WHERE REPLACE(REPLACE(REPLACE(cpf,'.',''),'-',''),'/','') = :cpf
-            AND tipo = 'motorista'
+            AND type = 'driver'
         """), {"cpf": cpf}).fetchone()
         if not motorista:
             raise HTTPException(status_code=401, detail="CPF nao encontrado ou nao autorizado!")
