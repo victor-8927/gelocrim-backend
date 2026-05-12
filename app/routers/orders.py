@@ -211,3 +211,61 @@ def update_order_status(oid: str, body: dict = Body(...),
     return {"updated": True}
 
 
+
+@router.post("/bulk_planilha", status_code=200)
+def bulk_planilha(body: dict = Body(...), db: Session = Depends(get_db)):
+    import traceback
+    try:
+        pedidos = body.get("pedidos", [])
+        importados = 0
+        atualizados = 0
+        ts = now_str()
+        for p in pedidos:
+            ext_id  = str(p.get("external_id") or "")
+            codparc = normalizar_codparc(p.get("codparc"))
+            name    = p.get("recipient_name") or "Parceiro"
+            weight  = float(p.get("weight_kg") or 0)
+            ddate   = p.get("data")
+            itens   = p.get("itens") or []
+            existente = db.execute(
+                text("SELECT id FROM orders WHERE external_id = :ext"), {"ext": ext_id}
+            ).fetchone()
+            if existente:
+                db.execute(text("""
+                    UPDATE orders SET weight_kg=:kg, codparc=:cp,
+                        recipient_name=:name, updated_at=:ts
+                    WHERE external_id=:ext
+                """), {"kg": weight, "cp": codparc, "name": name, "ts": ts, "ext": ext_id})
+                oid = existente[0]
+                atualizados += 1
+            else:
+                oid = str(__import__('uuid').uuid4())
+                db.execute(text("""
+                    INSERT INTO orders (id, external_id, source, weight_kg, codparc,
+                        recipient_name, status, priority, delivery_date, created_at, updated_at,
+                        order_type, address, volume_m3, tw_start, tw_end)
+                    VALUES (:id, :ext, 'planilha', :kg, :cp,
+                        :name, 'pending', 1, :ddate, :ts, :ts,
+                        '1000', 'Manaus - AM', 0, '07:30', '18:00')
+                """), {"id": oid, "ext": ext_id, "kg": weight, "cp": codparc,
+                       "name": name, "ddate": ddate, "ts": ts})
+                importados += 1
+            if itens:
+                db.execute(text("DELETE FROM order_items WHERE invoice_number = :ext"), {"ext": ext_id})
+                for it in itens:
+                    db.execute(text("""
+                        INSERT INTO order_items (codparc, top_app, item_type, item_name,
+                            weight_unit, qty, negotiation_date, invoice_number, created_at)
+                        VALUES (:cp, :top, :tipo, :nome, :peso, :qty, :ddate, :inv, :ts)
+                    """), {
+                        "cp": codparc, "top": it.get("top_app", "1000"),
+                        "tipo": it.get("item_type"), "nome": it.get("item_name"),
+                        "peso": float(it.get("weight_unit") or 0),
+                        "qty": int(it.get("qty") or 0),
+                        "ddate": ddate, "inv": ext_id, "ts": ts
+                    })
+        db.commit()
+        return {"importados": importados, "atualizados": atualizados}
+    except Exception:
+        print("ERROR bulk_planilha:", traceback.format_exc())
+        raise
