@@ -81,7 +81,7 @@ def list_orders(
             o.region,
             o.priority,
             o.codparc,
-            COALESCE(c.service_time, '')                   AS tempo_entrega
+            COALESCE(c.service_time, '') AS service_time
         FROM orders o
         LEFT JOIN clients c ON c.codparc = o.codparc
     """
@@ -209,3 +209,4 @@ def update_order_status(oid: str, body: dict = Body(...),
                {"s": status, "ts": now_str(), "id": oid})
     db.commit()
     return {"updated": True}
+
