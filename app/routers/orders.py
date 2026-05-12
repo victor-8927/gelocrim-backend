@@ -257,9 +257,7 @@ def bulk_planilha(body: dict = Body(...), db: Session = Depends(get_db)):
                         INSERT INTO order_items (id, codparc, top_app, item_type, item_name, weight_unit, qty, negotiation_date, invoice_number, created_at) VALUES (gen_random_uuid(), :cp, :top, :tipo, :nome, :peso, :qty, :ddate, :inv, :ts)
                     """), {
                         "cp": codparc, "top": it.get("top_app", "1000"),
-                        "tipo": it.get("item_type"), "nome": it.get("item_name"),
-                        "peso": float(it.get("weight_unit") or 0),
-                        "qty": int(it.get("qty") or 0),
+                        "tipo": it.get("item_type") or it.get("cod"), "nome": it.get("item_name") or it.get("nome"), "peso": float(it.get("weight_unit") or it.get("peso_unit") or 0), "qty": int(it.get("qty") or it.get("qtd") or 0),
                         "ddate": ddate, "inv": ext_id, "ts": ts
                     })
         db.commit()
@@ -267,4 +265,5 @@ def bulk_planilha(body: dict = Body(...), db: Session = Depends(get_db)):
     except Exception:
         print("ERROR bulk_planilha:", traceback.format_exc())
         raise
+
 
