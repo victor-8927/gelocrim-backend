@@ -38,18 +38,7 @@ class OrderOut(BaseModel):
 @router.get("/resumo-itens")
 def resumo_itens(_=Depends(get_current_user), db: Session = Depends(get_db)):
     rows = db.execute(text("""
-        SELECT oi.item_name, oi.item_type,
-               SUM(oi.qty) AS total_qty,
-               ROUND(SUM(oi.qty * oi.weight_unit)) AS total_kg
-        FROM order_items oi
-        INNER JOIN orders o ON o.external_id = oi.invoice_number
-        WHERE oi.item_type IN ('370','371','372','373')
-          AND o.delivery_date = (
-              SELECT MAX(delivery_date) FROM orders
-              WHERE status IN ('pending','routed')
-          )
-        GROUP BY oi.item_type, oi.item_name
-        ORDER BY oi.item_type
+        SELECT item_name, item_type, total_qty, total_kg FROM vw_resumo_producao WHERE delivery_date = (SELECT MAX(delivery_date) FROM orders WHERE status IN ('pending','routed'))
     """)).fetchall()
     return [dict(r._mapping) for r in rows]
 
