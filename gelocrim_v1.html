@@ -3022,11 +3022,11 @@ async function verDetalhePedido(id) {
         const cor = TOP_COLOR[top.top] || '#90afd4';
         const label = TOP_LABEL[top.top] || ('TOP ' + top.top);
         // Filtrar itens reais (nao a nota generica)
-        const itens = (top.itens || []).filter(i => i.cod && i.cod.length <= 3);
+        const itens = (top.itens || []).filter(i => (i.cod || i.type) && String(i.cod || i.type).length <= 3);
         let itensHtml = itens.map(i =>
           '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">' +
-          '<span style="color:#c8d6e5">' + i.qtd + 'x ' + i.nome + '</span>' +
-          '<span style="color:' + cor + ';font-weight:600">' + i.peso_total.toFixed(0) + ' kg</span>' +
+          '<span style="color:#c8d6e5">' + (i.qty||i.qtd||0) + 'x ' + (i.name||i.nome||'') + '</span>' +
+          '<span style="color:' + cor + ';font-weight:600">' + ((i.total_weight||i.peso_total||0)).toFixed(0) + ' kg</span>' +
           '</div>'
         ).join('');
         if (!itensHtml) itensHtml = '<div style="color:#90afd4;font-size:11px">Sem itens detalhados</div>';
