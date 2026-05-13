@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -4804,8 +4804,7 @@ async function importarCSV() {
   if(limpar){
     try{
       btn.textContent='Limpando antigos...';
-      var ords=await api('GET','/orders?status=pending&limit=500');
-      for(var o of ords){try{await api('DELETE','/orders/'+o.id);}catch(e){}}
+      await api('DELETE','/orders');
     }catch(e){}
   }
   for(var pedido of _csvDados){
