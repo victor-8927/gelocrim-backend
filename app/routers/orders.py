@@ -101,13 +101,8 @@ def get_order(oid: str, _=Depends(get_current_user), db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Order not found.")
     result = dict(row._mapping)
     itens = db.execute(text("""
-        SELECT top_app, item_type, item_name, qty, weight_unit,
-               qty * weight_unit as total_weight
-        FROM order_items
-        WHERE codparc = :codparc
-        AND negotiation_date = (SELECT MAX(negotiation_date) FROM order_items WHERE codparc = :codparc)
-        ORDER BY top_app, item_type
-    """), {"codparc": result["codparc"]}).fetchall()
+        SELECT top_app, item_type, item_name, qty, weight_unit, qty * weight_unit as total_weight FROM vw_pedido_mix WHERE external_id = :ext_id ORDER BY top_app, item_type
+    """), {"ext_id": result["external_id"]}).fetchall()
     tops = {}
     for item in itens:
         t = item[0] or "1000"
