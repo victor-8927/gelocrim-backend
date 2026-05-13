@@ -4549,8 +4549,8 @@ async function atualizarResumoQuantidades() {
     var rows = await api('GET', '/orders/resumo-itens?data=' + dtEntrega);
     var cores = {'GELO 05KG':'#00d4aa','GELO 10KG':'#64B4FF','GELO 20KG':'#f59e0b','GELO 40KG':'#f87171'};
     var txt = rows.map(function(r){
-      var cor = cores[r.item_nome] || '#e8f0fe';
-      return '<span style="color:'+cor+';font-weight:700">'+r.total_qtd+'x '+r.item_nome+'</span> <span style="color:#90afd4;font-size:11px">('+r.total_kg+'kg)</span>';
+      var cor = cores[r.item_name] || '#e8f0fe';
+      return '<span style="color:'+cor+';font-weight:700">'+r.total_qty+'x '+r.item_name+'</span> <span style="color:#90afd4;font-size:11px">('+r.total_kg+'kg)</span>';
     }).join('<span style="color:#1e3a5c;margin:0 6px">|</span>');
     var el = document.getElementById('resumo-texto');
     if(el) el.innerHTML = txt || '—';
@@ -4564,8 +4564,8 @@ async function atualizarResumoQuantidades() {
     var rows = await api('GET', '/orders/resumo-itens');
     var cores = {'GELO 05KG':'#00d4aa','GELO 10KG':'#64B4FF','GELO 20KG':'#f59e0b','GELO 40KG':'#f87171'};
     var txt = rows.map(function(r){
-      var cor = cores[r.item_nome] || '#e8f0fe';
-      return '<span style="color:'+cor+';font-weight:700">'+r.total_qtd+'x '+r.item_nome+'</span> <span style="color:#90afd4;font-size:11px">('+r.total_kg+'kg)</span>';
+      var cor = cores[r.item_name] || '#e8f0fe';
+      return '<span style="color:'+cor+';font-weight:700">'+r.total_qty+'x '+r.item_name+'</span> <span style="color:#90afd4;font-size:11px">('+r.total_kg+'kg)</span>';
     }).join('<span style="color:#1e3a5c;margin:0 6px">|</span>');
     var el = document.getElementById('resumo-texto');
     if(el) el.innerHTML = txt || '—';
