@@ -4330,14 +4330,14 @@ function detalharParceiro(codparc) {
     campo('Nome Fantasia', c.name||c.trade_name||c.nome)+
     campo('Razão Social', c.legal_name||c.razao_social)+
     campo('CPF/CNPJ', c.tax_id||c.cnpj||c.cpf)+
-    campo('Telefone', c.phone)+
-    campo('Segmento', c.segment||c.segmento)+
+    campo('Telefone', c.phone||'— Não informado')+
+    campo('Segmento', c.segment||c.segmento||'— Não informado')+
     '</div>'+
 
     '<div style="font-size:10px;font-weight:700;color:#64B4FF;letter-spacing:1.5px;margin-bottom:8px">📦 LOGÍSTICA E ROTEIRIZAÇÃO</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">'+
-    campoDestaque('Rota', c.route || c.region, '#f59e0b')+
-    campoDestaque('Zona Geo', c.geo_zone, '#a78bfa')+
+    campoDestaque('Rota', c.route||c.region||'🏪 Retira na empresa', '#f59e0b')+
+    campoDestaque('Zona Geo', c.geo_zone||'— Não roteirizado', '#a78bfa')+
     campoDestaque('⏱️ Tempo Médio', janela, '#64B4FF')+
     '</div>'+
 
@@ -4346,13 +4346,13 @@ function detalharParceiro(codparc) {
     '<div style="grid-column:1/-1">'+campo('Endereço Completo', c.address)+'</div>'+
     campo('Bairro', c.district)+
     campo('Cidade', c.city ? c.city.replace(' - AM','').replace('/AM','') : '—')+
-    campo('CEP', c.zip_code||c.cep)+
+    campo('CEP', c.zip_code||c.cep||'— Não informado')+
     campo('Estado', 'AM')+
     '</div>'+
 
     '<div style="font-size:10px;font-weight:700;color:#64B4FF;letter-spacing:1.5px;margin-bottom:8px">📋 OUTROS</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
-    campo('Comodatos', c.loans||c.comodatos)+
+    campo('Comodatos', c.loans||c.comodatos||'— Sem comodato')+
     campo('Status', c.status==="active"?"✅ Ativo":"❌ Inativo")+
     '</div>';
 
@@ -7115,6 +7115,7 @@ function closeLightbox(){var lb=document.getElementById('lightbox-fotos');if(lb)
 
 </body>
 </html>
+
 
 
 
