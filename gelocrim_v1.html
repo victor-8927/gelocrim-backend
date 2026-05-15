@@ -6183,15 +6183,15 @@ function rotVeiculoChanged(){
   if(capInfo) capInfo.style.display = 'block';
 
   var setPct = function(barId, txtId, val, cap, unit){
-    var pct = cap > 0 ? Math.min(100, (val/cap*100)) : 0;
+  var setPct = function(barId, txtId, val, cap, unit){
+    var pct = cap > 0 ? (val/cap*100) : 0;
     var bar = document.getElementById(barId);
     var txt = document.getElementById(txtId);
-    if(bar){ bar.style.width = pct+'%'; bar.style.background = pct>90?'#ef4444':pct>70?'#f59e0b':'#10b981'; }
-    if(txt) txt.textContent = val.toFixed(unit==='kg'?0:2)+' '+unit+' / '+cap+' '+unit+' ('+pct.toFixed(0)+'%)';
+    var cor = pct<=100?"#10b981":pct<=110?"#f59e0b":pct<=120?"#f97316":"#ef4444";
+    var alerta = pct>120?" ⚠️ ACIMA DO LIMITE!":pct>110?" 🟠 +20%":pct>100?" ⚠️ +10%":"";
+    if(bar){ bar.style.width = Math.min(100,pct)+"%"; bar.style.background = cor; }
+    if(txt) txt.textContent = val.toFixed(unit==="kg"?0:2)+" "+unit+" / "+cap+" "+unit+" ("+pct.toFixed(0)+"%)" +alerta;
   };
-
-  setPct('rot-barra-peso', 'rot-peso-txt', pesoTotal, capKg, 'kg');
-  setPct('rot-barra-vol',  'rot-vol-txt',  volTotal,  capM3, 'm³');
 
   // Pallets
   var palPct = capPallets > 0 ? Math.min(100, palletsUsados/capPallets*100) : 0;
@@ -7139,3 +7139,5 @@ function closeLightbox(){var lb=document.getElementById('lightbox-fotos');if(lb)
 
 
 
+    if(txt) txt.textContent = val.toFixed(unit==="kg"?0:2)+" "+unit+" / "+cap+" "+unit+" ("+pct.toFixed(0)+"%)"  +alerta;
+  };
