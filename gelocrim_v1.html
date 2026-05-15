@@ -3711,7 +3711,7 @@ async function loadRotMapData(){
           lng: cli&&cli.lng ? parseFloat(cli.lng) : (o.lng?parseFloat(o.lng):null),
           regiao: (cli?cli.regiao:null)||o.regiao||'',
           rota: cli?cli.rota:'',
-          bairro: cli?cli.district:'',
+          bairro: cli?(cli.district||cli.bairro||''):'',
           cidade: cli?cli.city:'Manaus',
           tempo_entrega: cli?cli.service_time:'0',
           weight_kg: 0,
@@ -3892,7 +3892,7 @@ function buscarFiltrados(){
     if(!o.lat||!o.lng) return false;
     if(vr   && (o.rota||o.regiao||'').indexOf(vr)<0)   return false;
     if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
-    if(vb   && (o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
+    if(vb   && (o.bairro||o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
     if(vs   && (o.recipient_name||'').toLowerCase().indexOf(vs)<0) return false;
     return true;
   });
@@ -3925,7 +3925,7 @@ function renderRotMapMarkers(orders){
       if(!o.lat||!o.lng) return false;
       if(vr   && (o.rota||o.regiao||'').indexOf(vr)<0)   return false;
       if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
-      if(vb   && (o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
+      if(vb   && (o.bairro||o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
       if(vs   && (o.recipient_name||'').toLowerCase().indexOf(vs)<0) return false;
       return true;
     });
@@ -7040,6 +7040,7 @@ function closeLightbox(){var lb=document.getElementById('lightbox-fotos');if(lb)
 
 </body>
 </html>
+
 
 
 
