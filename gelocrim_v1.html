@@ -3796,8 +3796,8 @@ async function editarVeiculo(id){
       function setV(eid,val){ var e=document.getElementById(eid); if(e&&val!=null&&val!==undefined&&val!=='') e.value=val; }
       setV('v-vda',v.vda); setV('v-plate',v.plate); setV('v-model',v.model);
       setV('v-type',v.type); setV('v-kg',v.capacity_kg); setV('v-m3',v.capacity_m3);
-      setV('v-pallets',v.pallets); setV('v-comp',v.bau_comp); setV('v-larg',v.bau_larg);
-      setV('v-alt',v.bau_alt); setV('v-combustivel',v.fuel_type||'diesel');
+      setV('v-pallets',v.pallets); setV('v-comp',v.box_length); setV('v-larg',v.box_width);
+      setV('v-alt',v.box_height); setV('v-combustivel',v.fuel_type||'diesel');
       setV('v-kml',v.km_per_liter); setV('v-preco-comb',v.fuel_price);
       setV('v-ipva',v.ipva_anual); setV('v-manut',v.manut_mes);
       setV('v-custo-dia',v.daily_cost); setV('v-status',v.status||'active');
@@ -3820,9 +3820,9 @@ async function salvarVeiculoCompleto(editId){
     capacity_kg:parseFloat(document.getElementById('v-kg').value)||0,
     capacity_m3:parseFloat(document.getElementById('v-m3').value)||0,
     pallets:parseInt(document.getElementById('v-pallets').value)||0,
-    bau_comp:parseFloat(document.getElementById('v-comp').value)||0,
-    bau_larg:parseFloat(document.getElementById('v-larg').value)||0,
-    bau_alt:parseFloat(document.getElementById('v-alt').value)||0,
+    box_length:parseFloat(document.getElementById('v-comp').value)||0,
+    box_width:parseFloat(document.getElementById('v-larg').value)||0,
+    box_height:parseFloat(document.getElementById('v-alt').value)||0,
     fuel_type:document.getElementById('v-combustivel').value,
     km_per_liter:parseFloat(document.getElementById('v-kml').value)||0,
     fuel_price:parseFloat(document.getElementById('v-preco-comb').value)||0,
@@ -4890,9 +4890,9 @@ async function editarVeiculo(id){
     setVal('v-kg',          v.capacity_kg);
     setVal('v-m3',          v.capacity_m3);
     setVal('v-pallets',     v.pallets);
-    setVal('v-comp',        v.bau_comp);
-    setVal('v-larg',        v.bau_larg);
-    setVal('v-alt',         v.bau_alt);
+    setVal('v-comp',        v.box_length);
+    setVal('v-larg',        v.box_width);
+    setVal('v-alt',         v.box_height);
     setVal('v-combustivel', v.fuel_type);
     setVal('v-kml',         v.km_per_liter);
     setVal('v-preco-comb',  v.fuel_price);
@@ -4912,7 +4912,7 @@ async function editarVeiculo(id){
     if(hiddenId) hiddenId.value = id;
     console.log('veiculoEditId setado:', window.veiculoEditId);
 
-    if(v.bau_comp && v.bau_larg && v.bau_alt) calcularCubagem();
+    if(v.box_length && v.box_width && v.box_height) calcularCubagem();
 
   }catch(e){ toast('Erro: '+e.message,'error'); }
 }
@@ -4927,9 +4927,9 @@ async function salvarVeiculoCompleto(editId){
     capacity_kg:  parseFloat(document.getElementById('v-kg').value)||0,
     capacity_m3:  parseFloat(document.getElementById('v-m3').value)||0,
     pallets:      parseInt(document.getElementById('v-pallets').value)||0,
-    bau_comp:     parseFloat(document.getElementById('v-comp').value)||0,
-    bau_larg:     parseFloat(document.getElementById('v-larg').value)||0,
-    bau_alt:      parseFloat(document.getElementById('v-alt').value)||0,
+    box_length:     parseFloat(document.getElementById('v-comp').value)||0,
+    box_width:     parseFloat(document.getElementById('v-larg').value)||0,
+    box_height:      parseFloat(document.getElementById('v-alt').value)||0,
     fuel_type:    document.getElementById('v-combustivel').value,
     km_per_liter: parseFloat(document.getElementById('v-kml').value)||0,
     fuel_price:   parseFloat(document.getElementById('v-preco-comb').value)||0,
@@ -6147,7 +6147,7 @@ async function carregarFrota(){
     if(!sel) return;
     sel.innerHTML='<option value="">-- Selecione o veiculo --</option>'+
       veics.filter(function(v){return v.status==='active';}).map(function(v){
-        return '<option value="'+v.id+'" data-kg="'+(v.capacity_kg||0)+'" data-m3="'+(v.capacity_m3||0)+'" data-pallets="'+(v.pallets||0)+'" data-bcomp="'+(v.bau_comp||0)+'" data-blarg="'+(v.bau_larg||0)+'" data-balt="'+(v.bau_alt||0)+'">'+v.vda+' — '+v.plate+'</option>';
+        return '<option value="'+v.id+'" data-kg="'+(v.capacity_kg||0)+'" data-m3="'+(v.capacity_m3||0)+'" data-pallets="'+(v.pallets||0)+'" data-bcomp="'+(v.box_length||0)+'" data-blarg="'+(v.box_width||0)+'" data-balt="'+(v.box_height||0)+'">'+v.vda+' — '+v.plate+'</option>';
       }).join('');
   }catch(e){}
 }
@@ -7040,6 +7040,7 @@ function closeLightbox(){var lb=document.getElementById('lightbox-fotos');if(lb)
 
 </body>
 </html>
+
 
 
 
