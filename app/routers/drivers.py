@@ -1,14 +1,18 @@
 ﻿from uuid import uuid4
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.db_compat import now_str
 from app.routers.auth import get_current_user
+import httpx, os
 
 router = APIRouter(prefix="/api/v1/drivers", tags=["Drivers"])
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 class DriverIn(BaseModel):
     name:             str
@@ -102,3 +106,35 @@ def update_driver(did: str, body: dict, _=Depends(get_current_user), db: Session
 def delete_driver(did: str, _=Depends(get_current_user), db: Session = Depends(get_db)):
     db.execute(text("UPDATE drivers SET status='deleted', updated_at=:ts WHERE id=:id"), {"ts":now_str(),"id":did})
     db.commit()
+
+@router.post("/{did}/upload-photo")
+async def upload_photo(did: str, file: UploadFile = File(...), _=Depends(get_current_user), db: Session = Depends(get_db)):
+    content = await file.read()
+    ext = file.filename.split(".")[-1].lower()
+    path = f"{did}/photo.{ext}"
+    headers = {"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": file.content_type}
+    async with httpx.AsyncClient() as client:
+        r = await client.post(f"{SUPABASE_URL}/storage/v1/object/driver-photos/{path}", content=content, headers=headers)
+        if r.status_code not in (200, 201):
+            # tenta upsert
+            r = await client.put(f"{SUPABASE_URL}/storage/v1/object/driver-photos/{path}", content=content, headers=headers)
+    url = f"{SUPABASE_URL}/storage/v1/object/public/driver-photos/{path}"
+    db.execute(text("UPDATE drivers SET photo=:url, updated_at=:ts WHERE id=:id"), {"url":url,"ts":now_str(),"id":did})
+    db.commit()
+    return {"url": url}
+
+@router.post("/{did}/upload-license")
+async def upload_license(did: str, file: UploadFile = File(...), _=Depends(get_current_user), db: Session = Depends(get_db)):
+    content = await file.read()
+    ext = file.filename.split(".")[-1].lower()
+    path = f"{did}/license.{ext}"
+    headers = {"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": file.content_type}
+    async with httpx.AsyncClient() as client:
+        r = await client.post(f"{SUPABASE_URL}/storage/v1/object/driver-documents/{path}", content=content, headers=headers)
+        if r.status_code not in (200, 201):
+            r = await client.put(f"{SUPABASE_URL}/storage/v1/object/driver-documents/{path}", content=content, headers=headers)
+    url = f"{SUPABASE_URL}/storage/v1/object/public/driver-documents/{path}"
+    db.execute(text("UPDATE drivers SET license_photo=:url, updated_at=:ts WHERE id=:id"), {"url":url,"ts":now_str(),"id":did})
+    db.commit()
+    return {"url": url}
+
