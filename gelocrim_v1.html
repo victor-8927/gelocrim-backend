@@ -5108,7 +5108,7 @@ function abrirModalMotorista(driver) {
     // Campos extras
     var g2 = function(id, val){ var el=document.getElementById(id); if(el) el.value=val||''; };
     g2('d-daily-cost', driver.daily_cost || '');
-    g2('d-veiculo-fixo', driver.fixed_vehicle||driver.veiculo_fixo||''); g2('d-carga-horaria', driver.work_hours||''); g2('d-hora-almoco', driver.lunch_time||''); g2('d-dia-folga', driver.day_off||''); g2('d-obs', driver.notes||'');
+    g2('d-veiculo-fixo', driver.fixed_vehicle||driver.veiculo_fixo||''); var wh=(driver.work_hours||'').split('-'); g2('d-entrada', wh[0]||''); g2('d-saida', wh[1]||''); var lt=(driver.lunch_time||'').split('-'); if(lt[0]&&lt[1]){var lE=lt[0].split(':');var lS=lt[1].split(':');var lMin=(parseInt(lS[0])*60+parseInt(lS[1]))-(parseInt(lE[0])*60+parseInt(lE[1]));g2('d-intervalo',lMin>0?lMin:'');} setTimeout(calcJornada,100); g2('d-hora-almoco', driver.lunch_time||''); g2('d-dia-folga', driver.day_off||''); g2('d-obs', driver.notes||'');
   }
   modal.style.display = 'flex';
 }
@@ -7065,6 +7065,7 @@ function closeLightbox(){var lb=document.getElementById('lightbox-fotos');if(lb)
 
 </body>
 </html>
+
 
 
 
