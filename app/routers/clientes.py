@@ -47,7 +47,8 @@ def list_clients(q: Optional[str] = None, db: Session = Depends(get_db)):
         rows = db.execute(text("""
             SELECT id, codparc, name, trade_name, legal_name, phone,
                    address, district, city, state, lat, lng,
-                   segment, route, geo_zone, service_time, status
+                   segment, route, geo_zone, service_time, status,
+                   tax_id, zip_code, loans
             FROM clients
             ORDER BY name
         """)).fetchall()
@@ -58,10 +59,12 @@ def get_client(codparc: int, db: Session = Depends(get_db)):
     row = db.execute(text("""
         SELECT id, codparc, name, trade_name, legal_name, phone,
                address, district, city, state, lat, lng,
-               segment, route, geo_zone, service_time, status
+               segment, route, geo_zone, service_time, status,
+               tax_id, zip_code, loans
         FROM clients WHERE codparc = :codparc
     """), {"codparc": codparc}).fetchone()
     if not row:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Client not found.")
     return dict(row._mapping)
+
