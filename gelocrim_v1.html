@@ -3907,7 +3907,7 @@ function buscarFiltrados(){
 
 function renderRotMapMarkers(orders){
   setTimeout(function(){
-    var m = window._rotMap || initMap('rot-map');
+    var m = maps['rot-map'] || initMap('rot-map');
     if(!m) return;
     (window._rotMapMarkers||[]).forEach(function(mk){ mk.setMap(null); });
     window._rotMapMarkers = [];
@@ -7040,6 +7040,7 @@ function closeLightbox(){var lb=document.getElementById('lightbox-fotos');if(lb)
 
 </body>
 </html>
+
 
 
 
