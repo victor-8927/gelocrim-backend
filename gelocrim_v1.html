@@ -3920,14 +3920,14 @@ function renderRotMapMarkers(orders){
     var vb  = fb  ? fb.value  : '';
     var vs  = fs  ? fs.value.toLowerCase() : '';
 
-    var filtrados = (orders||[]).filter(function(o){
-      if(!o.lat||!o.lng) return false;
-      if(vr   && (o.rota||o.regiao||'').indexOf(vr)<0)   return false;
-      if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
-      if(vb   && (o.bairro||o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
-      if(vs   && (o.recipient_name||o.name||o.nome||'').toLowerCase().indexOf(vs)<0) return false;
-      if(vs   && (o.recipient_name||o.name||o.nome||'').toLowerCase().indexOf(vs)<0) return false;
-    });
+  var filtrados = (orders||[]).filter(function(o){
+    if(!o.lat||!o.lng) return false;
+    if(vr   && (o.rota||o.regiao||'').indexOf(vr)<0)   return false;
+    if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
+    if(vb   && (o.bairro||o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
+    if(vs   && (o.recipient_name||o.name||o.nome||'').toLowerCase().indexOf(vs)<0) return false;
+    return true;
+  });
 
     var st = document.getElementById('rot-map-status');
     if(st) st.textContent = filtrados.length+' clientes no mapa';
