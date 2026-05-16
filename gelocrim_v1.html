@@ -4021,8 +4021,8 @@ function renderRotMapMarkers(orders){
       bounds.extend({lat:parseFloat(o.lat), lng:parseFloat(o.lng)});
     });
 
+
     if(filtrados.length > 0 && !bounds.isEmpty()) m.fitBounds(bounds);
-  }, 200);
   }, 200);
 }
 </script>
