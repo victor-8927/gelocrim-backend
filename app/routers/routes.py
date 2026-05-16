@@ -571,3 +571,242 @@ def verificar_proximidade(
         "cliente":     stop[2],
         "mensagem":    "You are on site!" if dentro else f"You are {round(distancia)}m from client",
     }
+
+
+# ─────────────────────────────────────────────
+# POST /otimizar — Otimização de rota com PostGIS
+# ─────────────────────────────────────────────
+class OtimizarRequest(BaseModel):
+    codparcs: List[int]
+    modo: Optional[str] = "otimizado"  # otimizado, proximidade, distancia, agrupamento
+    escopo: Optional[str] = "padrao"   # padrao, cidade, bairro
+    hora_saida: Optional[str] = "07:30"
+    deposito_lat: Optional[float] = -3.093544
+    deposito_lng: Optional[float] = -60.075812
+
+@router.post("/otimizar")
+def otimizar_rota(
+    body: OtimizarRequest,
+    _: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not body.codparcs:
+        raise HTTPException(status_code=422, detail="Lista de codparcs vazia")
+
+    # Busca clientes com coordenadas e dados de janela de horário via PostGIS
+    rows = db.execute(text("""
+        SELECT 
+            c.codparc,
+            c.name,
+            c.lat,
+            c.lng,
+            c.service_time,
+            c.route,
+            c.geo_zone,
+            c.district,
+            c.city,
+            -- Distância ao depósito em metros via PostGIS
+            ST_Distance(
+                ST_SetSRID(ST_MakePoint(c.lng, c.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(:dep_lng, :dep_lat), 4326)::geography
+            ) AS dist_deposito,
+            -- Cluster por proximidade (raio 2km)
+            ST_ClusterDBSCAN(
+                ST_SetSRID(ST_MakePoint(c.lng, c.lat), 4326),
+                eps := 0.02,
+                minpoints := 1
+            ) OVER () AS cluster_id
+        FROM clients c
+        WHERE c.codparc = ANY(:codparcs)
+          AND c.lat IS NOT NULL
+          AND c.lng IS NOT NULL
+    """), {
+        "codparcs": body.codparcs,
+        "dep_lat": body.deposito_lat,
+        "dep_lng": body.deposito_lng
+    }).fetchall()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Nenhum cliente com GPS encontrado")
+
+    clientes = [dict(r._mapping) for r in rows]
+
+    # Hora de saída em minutos
+    partes = body.hora_saida.split(":")
+    minutos_saida = int(partes[0]) * 60 + int(partes[1])
+    VEL_MEDIA_KMH = 35  # velocidade média urbana Manaus
+
+    def haversine_m(lat1, lon1, lat2, lon2):
+        import math
+        R = 6371000
+        f1, f2 = math.radians(lat1), math.radians(lat2)
+        df = math.radians(lat2 - lat1)
+        dl = math.radians(lon2 - lon1)
+        a = math.sin(df/2)**2 + math.cos(f1)*math.cos(f2)*math.sin(dl/2)**2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    def nearest_neighbor_com_janela(pontos, dep_lat, dep_lng, min_atual):
+        """Nearest Neighbor respeitando janelas de horário"""
+        nao_visitados = pontos[:]
+        resultado = []
+        cur_lat, cur_lng = dep_lat, dep_lng
+
+        while nao_visitados:
+            melhor = None
+            melhor_score = float('inf')
+            melhor_idx = -1
+
+            for i, p in enumerate(nao_visitados):
+                dist_m = haversine_m(cur_lat, cur_lng, float(p['lat']), float(p['lng']))
+                tempo_viagem = (dist_m / 1000) / VEL_MEDIA_KMH * 60  # minutos
+                chegada = min_atual + tempo_viagem
+                atend = int(p.get('service_time') or 20)
+
+                # Janela de horário (padrão: 7h-20h, supermercados: 7:30-12h e 14h-16h)
+                tw_start = 7.5 * 60  # 07:30
+                tw_end = 20 * 60     # 20:00
+
+                # Penalidade por violação de janela
+                penalidade = 0
+                if chegada > tw_end:
+                    penalidade = (chegada - tw_end) * 3  # atraso grave
+                elif chegada < tw_start:
+                    penalidade = tw_start - chegada  # espera
+
+                score = dist_m + penalidade * 10
+
+                if score < melhor_score:
+                    melhor_score = score
+                    melhor = p
+                    melhor_idx = i
+
+            if melhor:
+                dist_m2 = haversine_m(cur_lat, cur_lng, float(melhor['lat']), float(melhor['lng']))
+                tempo2 = (dist_m2 / 1000) / VEL_MEDIA_KMH * 60
+                atend2 = int(melhor.get('service_time') or 20)
+                min_atual = min_atual + tempo2 + atend2
+                cur_lat, cur_lng = float(melhor['lat']), float(melhor['lng'])
+                melhor['_eta_min'] = min_atual - atend2
+                melhor['_dist_m'] = round(dist_m2)
+                resultado.append(melhor)
+                nao_visitados.pop(melhor_idx)
+
+        return resultado, min_atual
+
+    def otimizar_2opt(pontos, dep_lat, dep_lng):
+        """Melhora rota com 2-opt eliminando cruzamentos"""
+        if len(pontos) <= 2:
+            return pontos
+        melhor = pontos[:]
+        melhorou = True
+        iteracoes = 0
+        while melhorou and iteracoes < 30:
+            melhorou = False
+            iteracoes += 1
+            for i in range(len(melhor) - 1):
+                for j in range(i + 2, len(melhor)):
+                    nova = melhor[:i+1] + melhor[i+1:j+1][::-1] + melhor[j+1:]
+                    # Calcula distância total
+                    def dist_total(seq):
+                        total = haversine_m(dep_lat, dep_lng, float(seq[0]['lat']), float(seq[0]['lng']))
+                        for k in range(1, len(seq)):
+                            total += haversine_m(float(seq[k-1]['lat']), float(seq[k-1]['lng']),
+                                               float(seq[k]['lat']), float(seq[k]['lng']))
+                        total += haversine_m(float(seq[-1]['lat']), float(seq[-1]['lng']), dep_lat, dep_lng)
+                        return total
+                    if dist_total(nova) < dist_total(melhor):
+                        melhor = nova
+                        melhorou = True
+        return melhor
+
+    # Aplica algoritmo conforme modo
+    minutos_atual = minutos_saida
+
+    if body.modo == "otimizado":
+        # Nearest Neighbor + 2-opt respeitando janelas
+        seq, _ = nearest_neighbor_com_janela(clientes, body.deposito_lat, body.deposito_lng, minutos_atual)
+        seq = otimizar_2opt(seq, body.deposito_lat, body.deposito_lng)
+
+    elif body.modo == "proximidade":
+        seq, _ = nearest_neighbor_com_janela(clientes, body.deposito_lat, body.deposito_lng, minutos_atual)
+
+    elif body.modo == "distancia":
+        # Ordena por distância ao depósito
+        seq = sorted(clientes, key=lambda x: float(x.get('dist_deposito') or 0))
+        seq = otimizar_2opt(seq, body.deposito_lat, body.deposito_lng)
+
+    elif body.modo == "agrupamento":
+        # Agrupa por cluster_id do PostGIS DBSCAN
+        grupos = {}
+        for c in clientes:
+            cid = c.get('cluster_id') or 0
+            if cid not in grupos:
+                grupos[cid] = []
+            grupos[cid].append(c)
+
+        # Ordena grupos por distância ao depósito
+        def centro_grupo(g):
+            lat = sum(float(x['lat']) for x in g) / len(g)
+            lng = sum(float(x['lng']) for x in g) / len(g)
+            return haversine_m(body.deposito_lat, body.deposito_lng, lat, lng)
+
+        grupos_ord = sorted(grupos.values(), key=centro_grupo)
+        seq = []
+        for grupo in grupos_ord:
+            g_seq, minutos_atual = nearest_neighbor_com_janela(grupo, body.deposito_lat, body.deposito_lng, minutos_atual)
+            seq.extend(g_seq)
+    else:
+        seq, _ = nearest_neighbor_com_janela(clientes, body.deposito_lat, body.deposito_lng, minutos_atual)
+
+    # Calcula ETAs finais e distância total
+    cur_lat, cur_lng = body.deposito_lat, body.deposito_lng
+    min_atual = minutos_saida
+    dist_total_m = 0
+    resultado = []
+
+    for p in seq:
+        dist_m = haversine_m(cur_lat, cur_lng, float(p['lat']), float(p['lng']))
+        tempo_viagem = (dist_m / 1000) / VEL_MEDIA_KMH * 60
+        atend = int(p.get('service_time') or 20)
+        min_atual += tempo_viagem + atend
+        dist_total_m += dist_m
+        h = int(min_atual // 60) % 24
+        m = int(min_atual % 60)
+        cur_lat, cur_lng = float(p['lat']), float(p['lng'])
+
+        resultado.append({
+            "codparc": p['codparc'],
+            "name": p['name'],
+            "lat": float(p['lat']),
+            "lng": float(p['lng']),
+            "service_time": p.get('service_time'),
+            "route": p.get('route'),
+            "geo_zone": p.get('geo_zone'),
+            "district": p.get('district'),
+            "city": p.get('city'),
+            "cluster_id": p.get('cluster_id'),
+            "dist_deposito_m": round(float(p.get('dist_deposito') or 0)),
+            "eta": f"{h:02d}:{m:02d}",
+            "dist_m": round(dist_m)
+        })
+
+    # Retorno ao depósito
+    if resultado:
+        dist_retorno = haversine_m(float(resultado[-1]['lat']), float(resultado[-1]['lng']),
+                                    body.deposito_lat, body.deposito_lng)
+        dist_total_m += dist_retorno
+        tempo_retorno = (dist_retorno / 1000) / VEL_MEDIA_KMH * 60
+        min_retorno = min_atual + tempo_retorno
+        h_ret = int(min_retorno // 60) % 24
+        m_ret = int(min_retorno % 60)
+    else:
+        h_ret, m_ret = int(minutos_saida // 60), int(minutos_saida % 60)
+
+    return {
+        "sequencia": resultado,
+        "total_paradas": len(resultado),
+        "dist_total_km": round(dist_total_m / 1000, 1),
+        "hora_retorno": f"{h_ret:02d}:{m_ret:02d}",
+        "modo": body.modo,
+        "escopo": body.escopo
+    }
