@@ -6374,53 +6374,162 @@ function atualizarEtaConf() {
   renderizarListaConf();
 }
 
-function reprocessarSequencia() {
+async function reprocessarSequencia() {
   var modo = document.getElementById('conf-sequencia') ? document.getElementById('conf-sequencia').value : 'otimizado';
-  var deposito = {lat: -3.093544, lng: -60.075812};
+  var escopo = document.getElementById('conf-escopo') ? document.getElementById('conf-escopo').value : 'padrao';
+  var horaInicio = document.getElementById('conf-hora-inicio') ? document.getElementById('conf-hora-inicio').value : '07:30';
 
+  if (!confOrdem || !confOrdem.length) {
+    toast('Nenhum cliente selecionado!', 'error');
+    return;
+  }
+
+  // Coleta codparcs dos clientes
+  var codparcs = confOrdem
+    .filter(function(o){ return o.codparc; })
+    .map(function(o){ return parseInt(o.codparc); });
+
+  if (!codparcs.length) {
+    toast('Clientes sem código ERP — otimização local aplicada', 'warn');
+    _reprocessarLocal(modo);
+    return;
+  }
+
+  toast('⏳ Otimizando rota com PostGIS...', 'info');
+
+  try {
+    var res = await api('POST', '/routes/otimizar', {
+      codparcs: codparcs,
+      modo: modo,
+      escopo: escopo,
+      hora_saida: horaInicio,
+      deposito_lat: -3.093544,
+      deposito_lng: -60.075812
+    });
+
+    if (!res.sequencia || !res.sequencia.length) {
+      toast('Sem resultado do servidor — otimização local aplicada', 'warn');
+      _reprocessarLocal(modo);
+      return;
+    }
+
+    // Reordena confOrdem conforme sequência retornada pelo PostGIS
+    var novaOrdem = [];
+    res.sequencia.forEach(function(s) {
+      var encontrado = confOrdem.find(function(o){ return parseInt(o.codparc) === parseInt(s.codparc); });
+      if (encontrado) {
+        encontrado._eta = s.eta;
+        encontrado._dist_m = s.dist_m;
+        encontrado._cluster = s.cluster_id;
+        novaOrdem.push(encontrado);
+      }
+    });
+
+    // Adiciona clientes sem codparc no final
+    confOrdem.forEach(function(o){
+      if (!o.codparc) novaOrdem.push(o);
+    });
+
+    confOrdem = novaOrdem;
+    renderizarListaConf();
+    atualizarEtaConf();
+
+    toast('✅ Rota otimizada via PostGIS! ' + res.dist_total_km + ' km · Retorno: ' + res.hora_retorno, 'success');
+
+  } catch(e) {
+    toast('Erro PostGIS: ' + e.message + ' — usando otimização local', 'warn');
+    _reprocessarLocal(modo);
+  }
+}
+
+
+// ── ALGORITMOS DE OTIMIZAÇÃO LOCAL (fallback) ──────────────────────
+
+function distLatLng(a, b) {
+  var dlat = parseFloat(a.lat) - parseFloat(b.lat);
+  var dlng = parseFloat(a.lng) - parseFloat(b.lng);
+  return Math.sqrt(dlat*dlat + dlng*dlng);
+}
+
+function distanciaTotal(pontos, deposito) {
+  if (!pontos.length) return 0;
+  var total = distLatLng(deposito, pontos[0]);
+  for (var i = 1; i < pontos.length; i++) total += distLatLng(pontos[i-1], pontos[i]);
+  total += distLatLng(pontos[pontos.length-1], deposito);
+  return total;
+}
+
+function nearestNeighbor(pontos, deposito) {
+  if (!pontos.length) return [];
+  var nao_visitados = pontos.slice();
+  var resultado = [];
+  var atual = deposito;
+  while (nao_visitados.length > 0) {
+    var melhor = null, melhor_dist = Infinity, melhor_idx = -1;
+    for (var i = 0; i < nao_visitados.length; i++) {
+      var d = distLatLng(atual, nao_visitados[i]);
+      if (d < melhor_dist) { melhor_dist = d; melhor = nao_visitados[i]; melhor_idx = i; }
+    }
+    if (melhor) { atual = melhor; resultado.push(melhor); nao_visitados.splice(melhor_idx, 1); }
+  }
+  return resultado;
+}
+
+function otimizar2opt(pontos, deposito) {
+  if (pontos.length <= 2) return pontos;
+  var melhor = pontos.slice();
+  var melhorou = true, iter = 0;
+  while (melhorou && iter < 30) {
+    melhorou = false; iter++;
+    for (var i = 0; i < melhor.length - 1; i++) {
+      for (var j = i + 2; j < melhor.length; j++) {
+        var nova = melhor.slice(0,i+1).concat(melhor.slice(i+1,j+1).reverse()).concat(melhor.slice(j+1));
+        if (distanciaTotal(nova, deposito) < distanciaTotal(melhor, deposito)) { melhor = nova; melhorou = true; }
+      }
+    }
+  }
+  return melhor;
+}
+
+function agruparPorProximidade(pontos, raio) {
+  raio = raio || 0.02;
+  var grupos = [], visitados = new Array(pontos.length).fill(false);
+  for (var i = 0; i < pontos.length; i++) {
+    if (visitados[i]) continue;
+    var grupo = [pontos[i]]; visitados[i] = true;
+    for (var j = i+1; j < pontos.length; j++) {
+      if (!visitados[j] && distLatLng(pontos[i], pontos[j]) <= raio) { grupo.push(pontos[j]); visitados[j] = true; }
+    }
+    grupos.push(grupo);
+  }
+  return grupos;
+}
+
+function _reprocessarLocal(modo) {
+  var deposito = {lat: -3.093544, lng: -60.075812};
   var comGPS = confOrdem.filter(function(o){ return parseFloat(o.lat) && parseFloat(o.lng); });
   var semGPS = confOrdem.filter(function(o){ return !parseFloat(o.lat) || !parseFloat(o.lng); });
 
-  if (modo === 'otimizado') {
-    var nn = nearestNeighbor(comGPS, deposito);
-    comGPS = otimizar2opt(nn, deposito);
-    toast('✅ Rota otimizada com 2-opt!', 'success');
-
+  if (modo === 'otimizado' || modo === 'distancia') {
+    comGPS = nearestNeighbor(comGPS, deposito);
+    comGPS = otimizar2opt(comGPS, deposito);
   } else if (modo === 'proximidade') {
     comGPS = nearestNeighbor(comGPS, deposito);
-    toast('✅ Sequência por proximidade aplicada!', 'success');
-
-  } else if (modo === 'distancia') {
-    comGPS = otimizar2opt(comGPS, deposito);
-    toast('✅ Menor distância calculada!', 'success');
-
   } else if (modo === 'agrupamento') {
-    // Agrupar por regiao/bairro e dentro de cada grupo otimizar
-    var grupos = {};
-    comGPS.forEach(function(o){
-      var chave = o.regiao || o.district || 'SEM_REGIAO';
-      if (!grupos[chave]) grupos[chave] = [];
-      grupos[chave].push(o);
-    });
-    // Ordenar grupos por proximidade ao deposito
-    var chavesOrdenadas = Object.keys(grupos).sort(function(a, b){
-      var centroA = grupos[a].reduce(function(s,o){return {lat:s.lat+parseFloat(o.lat)/grupos[a].length, lng:s.lng+parseFloat(o.lng)/grupos[a].length};}, {lat:0,lng:0});
-      var centroB = grupos[b].reduce(function(s,o){return {lat:s.lat+parseFloat(o.lat)/grupos[b].length, lng:s.lng+parseFloat(o.lng)/grupos[b].length};}, {lat:0,lng:0});
-      return distLatLng(deposito, centroA) - distLatLng(deposito, centroB);
+    var grupos = agruparPorProximidade(comGPS, 0.025);
+    grupos.sort(function(a, b){
+      var cA = {lat: a.reduce(function(s,o){return s+parseFloat(o.lat);},0)/a.length, lng: a.reduce(function(s,o){return s+parseFloat(o.lng);},0)/a.length};
+      var cB = {lat: b.reduce(function(s,o){return s+parseFloat(o.lat);},0)/b.length, lng: b.reduce(function(s,o){return s+parseFloat(o.lng);},0)/b.length};
+      return distLatLng(deposito, cA) - distLatLng(deposito, cB);
     });
     comGPS = [];
-    chavesOrdenadas.forEach(function(chave){
-      var grupo = nearestNeighbor(grupos[chave], deposito);
-      comGPS = comGPS.concat(grupo);
-    });
-    toast('✅ Agrupado por região e otimizado internamente!', 'success');
+    grupos.forEach(function(g){ comGPS = comGPS.concat(nearestNeighbor(g, deposito)); });
   }
 
   confOrdem = comGPS.concat(semGPS);
   atualizarEtaConf();
-
   var km = (distanciaTotal(comGPS, deposito) * 111).toFixed(0);
-  setTimeout(function(){ toast('📍 Distância estimada: ~' + km + ' km', 'info'); }, 800);
+  toast('📍 Rota local: ~' + km + ' km', 'info');
 }
 
 async function atualizarRotaMapa() {
