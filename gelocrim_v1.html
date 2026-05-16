@@ -3907,7 +3907,7 @@ function buscarFiltrados(){
 
 function renderRotMapMarkers(orders){
   setTimeout(function(){
-    var m = initMap('rot-map');
+    var m = window._rotMap || initMap('rot-map');
     if(!m) return;
     (window._rotMapMarkers||[]).forEach(function(mk){ mk.setMap(null); });
     window._rotMapMarkers = [];
