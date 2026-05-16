@@ -3758,7 +3758,7 @@ async function loadRotMapData(){
     var selB=document.getElementById('rot-filtro-bairro');
     if(selB){
       var bairros={};
-      items.forEach(function(o){if(o.district)bairros[o.district]=1;});
+      items.forEach(function(o){if(o.bairro)bairros[o.bairro]=1; if(o.district)bairros[o.district]=1;});
       selB.innerHTML='<option value="">🏘️ Todos bairros</option>'+
         Object.keys(bairros).sort().map(function(b){return '<option value="'+b+'">'+b+'</option>';}).join('');
     }
@@ -3894,7 +3894,7 @@ function buscarFiltrados(){
     if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
     if(vb   && (o.bairro||o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
     if(vs   && (o.recipient_name||o.name||o.nome||'').toLowerCase().indexOf(vs)<0) return false;
-    if(vs   && (o.recipient_name||o.name||o.nome||'').toLowerCase().indexOf(vs)<0) return false;
+    return true;
   });
   var novos=0;
   candidatos.forEach(function(o){
