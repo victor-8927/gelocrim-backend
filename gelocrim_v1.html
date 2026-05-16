@@ -3872,11 +3872,11 @@ function getCorRota(val){
 }
 
 function filtrarRotMapa(){
+function filtrarRotMapa(){
   var cache = window._rotOrdersCache||[];
   if(!cache.length){ toast('Clique em Atualizar primeiro!','warn'); return; }
   renderRotMapMarkers(cache);
 }
-
 function buscarFiltrados(){
   var cache = window._rotOrdersCache||[];
   var fr  = document.getElementById('rot-filtro-rota');
@@ -3894,7 +3894,7 @@ function buscarFiltrados(){
     if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
     if(vb   && (o.bairro||o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
     if(vs   && (o.recipient_name||'').toLowerCase().indexOf(vs)<0) return false;
-    return true;
+    if(vs   && (o.recipient_name||o.name||o.nome||'').toLowerCase().indexOf(vs)<0) return false;
   });
   var novos=0;
   candidatos.forEach(function(o){
@@ -3927,7 +3927,7 @@ function renderRotMapMarkers(orders){
       if(vreg && (o.regiao||'').indexOf(vreg)<0)          return false;
       if(vb   && (o.bairro||o.district||'').toLowerCase().indexOf(vb.toLowerCase())<0) return false;
       if(vs   && (o.recipient_name||'').toLowerCase().indexOf(vs)<0) return false;
-      return true;
+      if(vs   && (o.recipient_name||o.name||o.nome||'').toLowerCase().indexOf(vs)<0) return false;
     });
 
     var st = document.getElementById('rot-map-status');
