@@ -8,6 +8,8 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel
 from datetime import datetime
 import uuid
+import os
+import httpx
 
 router    = APIRouter(prefix="/api/v1/routes", tags=["Routes"])
 router_ws = APIRouter(tags=["WebSocket"])
@@ -573,6 +575,47 @@ def verificar_proximidade(
     }
 
 
+
+
+# ─────────────────────────────────────────────
+# Google Distance Matrix API
+# ─────────────────────────────────────────────
+GMAPS_KEY = os.getenv("GOOGLE_MAPS_KEY", "AIzaSyB47DpEZW4qbU74LxcG1ZD76cYLRlJw88M")
+
+async def obter_matriz_distancias(pontos, dep_lat, dep_lng):
+    todos = [{"lat": dep_lat, "lng": dep_lng}] + pontos
+    if len(todos) > 25:
+        todos = todos[:25]
+    coords = "|".join([f"{p['lat']},{p['lng']}" for p in todos])
+    url = "https://maps.googleapis.com/maps/api/distancematrix/json"
+    params = {
+        "origins": coords,
+        "destinations": coords,
+        "mode": "driving",
+        "departure_time": "now",
+        "key": GMAPS_KEY,
+        "language": "pt-BR"
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(url, params=params)
+            data = r.json()
+        if data.get("status") != "OK":
+            return {}
+        matriz = {}
+        for i, row in enumerate(data.get("rows", [])):
+            for j, el in enumerate(row.get("elements", [])):
+                if el.get("status") == "OK":
+                    dur = el.get("duration_in_traffic", el["duration"])
+                    matriz[(i, j)] = {
+                        "dist_m": el["distance"]["value"],
+                        "dur_s": dur["value"]
+                    }
+        return matriz
+    except Exception as e:
+        print(f"Erro Distance Matrix: {e}")
+        return {}
+
 # ─────────────────────────────────────────────
 # POST /otimizar — Otimização de rota com PostGIS
 # ─────────────────────────────────────────────
@@ -585,7 +628,7 @@ class OtimizarRequest(BaseModel):
     deposito_lng: Optional[float] = -60.075812
 
 @router.post("/otimizar")
-def otimizar_rota(
+async def otimizar_rota(
     body: OtimizarRequest,
     _: str = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -630,6 +673,31 @@ def otimizar_rota(
         raise HTTPException(status_code=404, detail="Nenhum cliente com GPS encontrado")
 
     clientes = [dict(r._mapping) for r in rows]
+
+    # Obtém matriz de distâncias reais via Google Distance Matrix
+    pontos_coords = [{"lat": float(c["lat"]), "lng": float(c["lng"])} for c in clientes]
+    matriz = await obter_matriz_distancias(pontos_coords, body.deposito_lat, body.deposito_lng)
+    usar_matriz = len(matriz) > 0
+    print(f"Matriz de distâncias: {len(matriz)} pares, usando_matriz={usar_matriz}")
+
+    def get_dist_m(i, j):
+        if usar_matriz and (i, j) in matriz:
+            return matriz[(i, j)]["dist_m"]
+        # Fallback haversine
+        import math
+        def hav(la1, lo1, la2, lo2):
+            R = 6371000
+            f1,f2 = math.radians(la1),math.radians(la2)
+            df,dl = math.radians(la2-la1),math.radians(lo2-lo1)
+            a = math.sin(df/2)**2 + math.cos(f1)*math.cos(f2)*math.sin(dl/2)**2
+            return R*2*math.atan2(math.sqrt(a),math.sqrt(1-a))
+        coords = [(body.deposito_lat, body.deposito_lng)] + [(float(c["lat"]), float(c["lng"])) for c in clientes]
+        return hav(coords[i][0], coords[i][1], coords[j][0], coords[j][1])
+
+    def get_dur_s(i, j):
+        if usar_matriz and (i, j) in matriz:
+            return matriz[(i, j)]["dur_s"]
+        return (get_dist_m(i, j) / 1000) / 35 * 3600
 
     # Hora de saída em minutos
     partes = body.hora_saida.split(":")
